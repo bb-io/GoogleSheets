@@ -9,6 +9,7 @@ using Apps.GoogleSheets.Models.Responses;
 using Apps.GoogleSheets.Dtos;
 using Google.Apis.Sheets.v4.Data;
 using static Google.Apis.Sheets.v4.SpreadsheetsResource.ValuesResource;
+using System.Collections.Generic;
 
 namespace Apps.GoogleSheets
 {
@@ -67,6 +68,25 @@ namespace Apps.GoogleSheets
             var client = GetGoogleSheetsClient(authenticationCredentialsProvider.Value);
             var clearRequest = client.Spreadsheets.Values.Clear(new ClearValuesRequest(), input.SpreadSheetId, range);
             clearRequest.Execute();
+        }
+
+        [Action("Add new row to table", Description = "Add new row to detected table")]
+        public void AddNewRow(AuthenticationCredentialsProvider authenticationCredentialsProvider,
+           [ActionParameter] AddNewRowRequest input)
+        {
+            var tableAdress = $"{input.TableStartColumn}{input.TableStartRowId}";
+            var range = $"{input.SheetName}!{tableAdress}:{tableAdress}";
+            var client = GetGoogleSheetsClient(authenticationCredentialsProvider.Value);
+
+            IList<IList<object>> test = new List<IList<object>>() { input.Columns.Select(s => (object)s).ToList() };
+            var valueRange = new ValueRange
+            {
+                Values = test
+            };
+            var appendRequest = client.Spreadsheets.Values.Append(valueRange, input.SpreadSheetId, range);
+            appendRequest.ValueInputOption = AppendRequest.ValueInputOptionEnum.USERENTERED;
+            appendRequest.InsertDataOption = AppendRequest.InsertDataOptionEnum.INSERTROWS;
+            appendRequest.Execute();
         }
 
         private IList<IList<object>> GetSheetValues(string serviceAccountConfString, string sheetId, string sheetName,
