@@ -6,6 +6,9 @@ using Google.Apis.Services;
 using System.IO;
 using Apps.GoogleSheets.Models.Requests;
 using Apps.GoogleSheets.Models.Responses;
+using Apps.GoogleSheets.Dtos;
+using Google.Apis.Sheets.v4.Data;
+using static Google.Apis.Sheets.v4.SpreadsheetsResource.ValuesResource;
 
 namespace Apps.GoogleSheets
 {
@@ -22,6 +25,48 @@ namespace Apps.GoogleSheets
             {
                 CellValue = cellValue
             };
+        }
+
+        [Action("Get range of cells", Description = "Get range of cells")]
+        public GetRangeCellsResponse GetRangeOfCells(AuthenticationCredentialsProvider authenticationCredentialsProvider,
+           [ActionParameter] GetRangeCellsRequest input)
+        {
+            var cellAdressA = $"{input.ColumnA}{input.RowIdA}";
+            var cellAdressB = $"{input.ColumnB}{input.RowIdB}";
+            var result = GetSheetValues(authenticationCredentialsProvider.Value, input.SpreadSheetId, input.SheetName, cellAdressA, cellAdressB);
+            var values = result.Select(v => new SheetRowDto() { Columns = v.Select(c => new SheetColumnDto() { Value = c.ToString() }).ToList() }).ToList();
+            return new GetRangeCellsResponse()
+            {
+                Rows = values
+            };
+        }
+
+        [Action("Set cell value", Description = "Set cell value")]
+        public void SetCellValue(AuthenticationCredentialsProvider authenticationCredentialsProvider,
+           [ActionParameter] SetCellValueRequest input)
+        {
+            var cellAdress = $"{input.Column}{input.RowId}";
+            var range = $"{input.SheetName}!{cellAdress}:{cellAdress}";
+
+            var client = GetGoogleSheetsClient(authenticationCredentialsProvider.Value);
+            IList<IList<object>> test = new List<IList<object>>() { new List<object>() { input.Value } };
+            var valueRange = new ValueRange
+            {
+                Values = test
+            };
+            var updateRequest = client.Spreadsheets.Values.Update(valueRange, input.SpreadSheetId, range);
+            updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
+            updateRequest.Execute();
+        }
+
+        [Action("Clear row", Description = "Clear row")]
+        public void ClearRow(AuthenticationCredentialsProvider authenticationCredentialsProvider,
+           [ActionParameter] ClearRowRequest input)
+        {
+            var range = $"{input.SheetName}!{input.RowId}:{input.RowId}";
+            var client = GetGoogleSheetsClient(authenticationCredentialsProvider.Value);
+            var clearRequest = client.Spreadsheets.Values.Clear(new ClearValuesRequest(), input.SpreadSheetId, range);
+            clearRequest.Execute();
         }
 
         private IList<IList<object>> GetSheetValues(string serviceAccountConfString, string sheetId, string sheetName,
