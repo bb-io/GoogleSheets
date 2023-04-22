@@ -10,6 +10,7 @@ using Apps.GoogleSheets.Dtos;
 using Google.Apis.Sheets.v4.Data;
 using static Google.Apis.Sheets.v4.SpreadsheetsResource.ValuesResource;
 using System.Collections.Generic;
+using Blackbird.Applications.Sdk.Common.Actions;
 
 namespace Apps.GoogleSheets
 {
@@ -17,11 +18,12 @@ namespace Apps.GoogleSheets
     public class Actions
     {
         [Action("Get cell value", Description = "Get cell value")]
-        public GetCellValueResponse GetCellValue(AuthenticationCredentialsProvider authenticationCredentialsProvider,
+        public GetCellValueResponse GetCellValue(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
            [ActionParameter] GetCellValueRequest input)
         {
+            var client = new GoogleSheetsClient(authenticationCredentialsProviders);
             var cellAdress = $"{input.Column}{input.RowId}";
-            var cellValue = GetSheetValues(authenticationCredentialsProvider.Value, input.SpreadSheetId, input.SheetName, cellAdress, cellAdress)[0][0].ToString();
+            var cellValue = client.GetSheetValues(input.SpreadSheetId, input.SheetName, cellAdress, cellAdress)[0][0].ToString();
             return new GetCellValueResponse()
             {
                 CellValue = cellValue
@@ -29,12 +31,13 @@ namespace Apps.GoogleSheets
         }
 
         [Action("Get range of cells", Description = "Get range of cells")]
-        public GetRangeCellsResponse GetRangeOfCells(AuthenticationCredentialsProvider authenticationCredentialsProvider,
+        public GetRangeCellsResponse GetRangeOfCells(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
            [ActionParameter] GetRangeCellsRequest input)
         {
+            var client = new GoogleSheetsClient(authenticationCredentialsProviders);
             var cellAdressA = $"{input.ColumnA}{input.RowIdA}";
             var cellAdressB = $"{input.ColumnB}{input.RowIdB}";
-            var result = GetSheetValues(authenticationCredentialsProvider.Value, input.SpreadSheetId, input.SheetName, cellAdressA, cellAdressB);
+            var result = client.GetSheetValues(input.SpreadSheetId, input.SheetName, cellAdressA, cellAdressB);
             var values = result.Select(v => new SheetRowDto() { Columns = v.Select(c => new SheetColumnDto() { Value = c.ToString() }).ToList() }).ToList();
             return new GetRangeCellsResponse()
             {
@@ -43,13 +46,12 @@ namespace Apps.GoogleSheets
         }
 
         [Action("Set cell value", Description = "Set cell value")]
-        public void SetCellValue(AuthenticationCredentialsProvider authenticationCredentialsProvider,
+        public void SetCellValue(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
            [ActionParameter] SetCellValueRequest input)
         {
+            var client = new GoogleSheetsClient(authenticationCredentialsProviders);
             var cellAdress = $"{input.Column}{input.RowId}";
             var range = $"{input.SheetName}!{cellAdress}:{cellAdress}";
-
-            var client = GetGoogleSheetsClient(authenticationCredentialsProvider.Value);
             IList<IList<object>> test = new List<IList<object>>() { new List<object>() { input.Value } };
             var valueRange = new ValueRange
             {
@@ -61,22 +63,22 @@ namespace Apps.GoogleSheets
         }
 
         [Action("Clear row", Description = "Clear row")]
-        public void ClearRow(AuthenticationCredentialsProvider authenticationCredentialsProvider,
+        public void ClearRow(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
            [ActionParameter] ClearRowRequest input)
         {
             var range = $"{input.SheetName}!{input.RowId}:{input.RowId}";
-            var client = GetGoogleSheetsClient(authenticationCredentialsProvider.Value);
+            var client = new GoogleSheetsClient(authenticationCredentialsProviders);
             var clearRequest = client.Spreadsheets.Values.Clear(new ClearValuesRequest(), input.SpreadSheetId, range);
             clearRequest.Execute();
         }
 
         [Action("Add new row to table", Description = "Add new row to detected table")]
-        public void AddNewRow(AuthenticationCredentialsProvider authenticationCredentialsProvider,
+        public void AddNewRow(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
            [ActionParameter] AddNewRowRequest input)
         {
             var tableAdress = $"{input.TableStartColumn}{input.TableStartRowId}";
             var range = $"{input.SheetName}!{tableAdress}:{tableAdress}";
-            var client = GetGoogleSheetsClient(authenticationCredentialsProvider.Value);
+            var client = new GoogleSheetsClient(authenticationCredentialsProviders);
 
             IList<IList<object>> test = new List<IList<object>>() { input.Columns.Select(s => (object)s).ToList() };
             var valueRange = new ValueRange
@@ -87,30 +89,6 @@ namespace Apps.GoogleSheets
             appendRequest.ValueInputOption = AppendRequest.ValueInputOptionEnum.USERENTERED;
             appendRequest.InsertDataOption = AppendRequest.InsertDataOptionEnum.INSERTROWS;
             appendRequest.Execute();
-        }
-
-        private IList<IList<object>> GetSheetValues(string serviceAccountConfString, string sheetId, string sheetName,
-            string cellA, string cellB)
-        {
-            var range = $"{sheetName}!{cellA}:{cellB}";
-            var request = GetGoogleSheetsClient(serviceAccountConfString).Spreadsheets.Values.Get(sheetId, range);
-            var response = request.Execute();
-            var values = response.Values;
-            return values;
-        }
-
-        private SheetsService GetGoogleSheetsClient(string serviceAccountConfString)
-        {
-            string[] scopes = { SheetsService.Scope.Spreadsheets };
-            ServiceAccountCredential? credential = GoogleCredential.FromJson(serviceAccountConfString)
-                                                  .CreateScoped(scopes)
-                                                  .UnderlyingCredential as ServiceAccountCredential;
-            var service = new SheetsService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = credential,
-                ApplicationName = "Blackbird"
-            });
-            return service;
-        }   
+        }        
     }
 }
