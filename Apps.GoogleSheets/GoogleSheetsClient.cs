@@ -14,14 +14,16 @@ namespace Apps.GoogleSheets
     {
         private static Initializer GetInitializer(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders)
         {
-            var serviceAccountConfString = authenticationCredentialsProviders.First(p => p.KeyName == "serviceAccountConfString").Value;
-            string[] scopes = { SheetsService.Scope.Spreadsheets };
-            ServiceAccountCredential? credential = GoogleCredential.FromJson(serviceAccountConfString)
-                                                  .CreateScoped(scopes)
-                                                  .UnderlyingCredential as ServiceAccountCredential;
+            //var serviceAccountConfString = authenticationCredentialsProviders.First(p => p.KeyName == "serviceAccountConfString").Value;
+            //string[] scopes = { SheetsService.Scope.Spreadsheets };
+            //ServiceAccountCredential? credential = GoogleCredential.FromJson(serviceAccountConfString)
+            //                                      .CreateScoped(scopes)
+            //                                      .UnderlyingCredential as ServiceAccountCredential;
+            var accessToken = authenticationCredentialsProviders.First(p => p.KeyName == "Authorization").Value;
+            GoogleCredential credentials = GoogleCredential.FromAccessToken(accessToken);
             return new BaseClientService.Initializer()
             {
-                HttpClientInitializer = credential,
+                HttpClientInitializer = credentials,
                 ApplicationName = "Blackbird"
             };
         }

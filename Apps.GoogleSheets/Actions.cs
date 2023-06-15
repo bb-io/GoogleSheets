@@ -23,10 +23,10 @@ namespace Apps.GoogleSheets
         {
             var client = new GoogleSheetsClient(authenticationCredentialsProviders);
             var cellAdress = $"{input.Column}{input.RowId}";
-            var cellValue = client.GetSheetValues(input.SpreadSheetId, input.SheetName, cellAdress, cellAdress)[0][0].ToString();
+            var cellValue = client.GetSheetValues(input.SpreadSheetId, input.SheetName, cellAdress, cellAdress)[0][0];
             return new GetCellValueResponse()
             {
-                CellValue = cellValue
+                CellValue = cellValue != null ? cellValue.ToString() : string.Empty
             };
         }
 
