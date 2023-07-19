@@ -1,11 +1,6 @@
-﻿using Apps.GoogleSheets.Authorization.OAuth2;
-using Blackbird.Applications.Sdk.Common;
+﻿using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Authentication.OAuth2;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Apps.GoogleSheets.Auth.OAuth2;
 
 namespace Apps.GoogleSheets
 {
@@ -27,9 +22,8 @@ namespace Apps.GoogleSheets
         public T GetInstance<T>()
         {
             if (!_typesInstances.TryGetValue(typeof(T), out var value))
-            {
                 throw new InvalidOperationException($"Instance of type '{typeof(T)}' not found");
-            }
+            
             return (T)value;
         }
 

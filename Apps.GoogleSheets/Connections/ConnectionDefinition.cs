@@ -1,25 +1,18 @@
 ﻿using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Connections;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Apps.GoogleSheets.Connections
 {
     public class ConnectionDefinition : IConnectionDefinition
     {
-        public IEnumerable<ConnectionPropertyGroup> ConnectionPropertyGroups => new List<ConnectionPropertyGroup>()
+        public IEnumerable<ConnectionPropertyGroup> ConnectionPropertyGroups => new List<ConnectionPropertyGroup>
         {
-            new ConnectionPropertyGroup
+            new()
             {
                 Name = "Oauth",
                 AuthenticationType = ConnectionAuthenticationType.OAuth2,
                 ConnectionUsage = ConnectionUsage.Actions,
                 ConnectionProperties = new List<ConnectionProperty>()
-                {
-                }
             }
             //new ConnectionPropertyGroup
             //{
@@ -33,7 +26,8 @@ namespace Apps.GoogleSheets.Connections
             //}
         };
 
-        public IEnumerable<AuthenticationCredentialsProvider> CreateAuthorizationCredentialsProviders(Dictionary<string, string> values)
+        public IEnumerable<AuthenticationCredentialsProvider> CreateAuthorizationCredentialsProviders(
+            Dictionary<string, string> values)
         {
             var accessToken = values.First(v => v.Key == "access_token");
             yield return new AuthenticationCredentialsProvider(

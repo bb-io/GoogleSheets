@@ -1,20 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Blackbird.Applications.Sdk.Common;
 
 namespace Apps.GoogleSheets.Models.Requests
 {
     public class GetCellValueRequest
     {
-        public string SpreadSheetId { get; set; }
-
-        public string SheetName { get; set; }
-
-        public int RowId { get; set; }
-
-        public string Column { get; set; }
-
+        [Display("Spread sheet ID")] public string SpreadSheetId { get; set; }
+        [Display("Sheet name")] public string SheetName { get; set; }
+        [Display("Row ID")] public string RowId { get; set; }
+        [Display("Column")] public string Column { get; set; }
     }
 }

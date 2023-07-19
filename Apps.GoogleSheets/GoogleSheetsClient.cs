@@ -2,11 +2,6 @@
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Apps.GoogleSheets
 {
@@ -20,8 +15,9 @@ namespace Apps.GoogleSheets
             //                                      .CreateScoped(scopes)
             //                                      .UnderlyingCredential as ServiceAccountCredential;
             var accessToken = authenticationCredentialsProviders.First(p => p.KeyName == "Authorization").Value;
-            GoogleCredential credentials = GoogleCredential.FromAccessToken(accessToken);
-            return new BaseClientService.Initializer()
+            var credentials = GoogleCredential.FromAccessToken(accessToken);
+            
+            return new()
             {
                 HttpClientInitializer = credentials,
                 ApplicationName = "Blackbird"
@@ -29,14 +25,5 @@ namespace Apps.GoogleSheets
         }
 
         public GoogleSheetsClient(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders) : base(GetInitializer(authenticationCredentialsProviders)) { }
-
-        public IList<IList<object>> GetSheetValues(string sheetId, string sheetName, string cellA, string cellB)
-        {
-            var range = $"{sheetName}!{cellA}:{cellB}";
-            var request = this.Spreadsheets.Values.Get(sheetId, range);
-            var response = request.Execute();
-            var values = response.Values;
-            return values;
-        }
     }
 }

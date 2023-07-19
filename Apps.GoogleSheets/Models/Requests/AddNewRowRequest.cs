@@ -1,22 +1,13 @@
-﻿using Apps.GoogleSheets.Dtos;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Blackbird.Applications.Sdk.Common;
 
 namespace Apps.GoogleSheets.Models.Requests
 {
     public class AddNewRowRequest
     {
-        public string SpreadSheetId { get; set; }
-
-        public string SheetName { get; set; }
-
-        public int TableStartRowId { get; set; }
-
-        public string TableStartColumn { get; set; }
-
-        public IEnumerable<string> Columns{ get; set; }
-}
+        [Display("Spread sheet ID")] public string SpreadSheetId { get; set; }
+        [Display("Sheet name")] public string SheetName { get; set; }
+        [Display("Table start row ID")] public string TableStartRowId { get; set; }
+        [Display("Table start column")] public string TableStartColumn { get; set; }
+        [Display("Columns")] public IEnumerable<string> Columns { get; set; }
+    }
 }

@@ -1,17 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Blackbird.Applications.Sdk.Common;
 
 namespace Apps.GoogleSheets.Models.Requests
 {
     public class ClearRowRequest
     {
-        public string SpreadSheetId { get; set; }
-
-        public string SheetName { get; set; }
-
-        public int RowId { get; set; }
+        [Display("Spread sheet ID")] public string SpreadSheetId { get; set; }
+        [Display("Sheet name")] public string SheetName { get; set; }
+        [Display("Row ID")] public string RowId { get; set; }
     }
 }
