@@ -21,9 +21,8 @@ namespace Apps.GoogleSheets
         {
             var client = new GoogleSheetsClient(authenticationCredentialsProviders);
 
-            var cellAdress = $"{input.Column}{input.RowId}";
             var sheetValues = await GetSheetValues(client,
-                input.SpreadSheetId, input.SheetName, cellAdress, cellAdress);
+                input.SpreadSheetId, input.SheetName, input.Cell, input.Cell);
 
             return new GetCellValueResponse
             {
@@ -38,11 +37,8 @@ namespace Apps.GoogleSheets
         {
             var client = new GoogleSheetsClient(authenticationCredentialsProviders);
 
-            var cellAdressA = $"{input.ColumnA}{input.RowIdA}";
-            var cellAdressB = $"{input.ColumnB}{input.RowIdB}";
-
             var result = await GetSheetValues(client,
-                input.SpreadSheetId, input.SheetName, cellAdressA, cellAdressB);
+                input.SpreadSheetId, input.SheetName, input.CellStart, input.CellEnd);
 
             return new GetRangeCellsResponse
             {
@@ -56,8 +52,7 @@ namespace Apps.GoogleSheets
         {
             var client = new GoogleSheetsClient(authenticationCredentialsProviders);
 
-            var cellAdress = $"{input.Column}{input.RowId}";
-            var range = $"{input.SheetName}!{cellAdress}:{cellAdress}";
+            var range = $"{input.SheetName}!{input.CellId}";
 
             var valueRange = new ValueRange
             {
@@ -82,24 +77,42 @@ namespace Apps.GoogleSheets
             return clearRequest.ExecuteAsync();
         }
 
-        [Action("Add new row to table", Description = "Add new row to detected table")]
-        public Task AddNewRow(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-            [ActionParameter] AddNewRowRequest input)
+        [Action("Set range of cells", Description = "Set multiple cells at once")]
+        public Task SetCellRange(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
+            [ActionParameter] SetCellRangeRequest input)
         {
             var client = new GoogleSheetsClient(authenticationCredentialsProviders);
 
-            var tableAdress = $"{input.TableStartColumn}{input.TableStartRowId}";
-            var range = $"{input.SheetName}!{tableAdress}:{tableAdress}";
+            var range = $"{input.SheetName}!{input.CellStart}:{input.CellEnd}";
 
             var valueRange = new ValueRange
             {
                 Values = new List<IList<object>> { input.Columns.Cast<object>().ToList() }
             };
-            
+
+            var updateRequest = client.Spreadsheets.Values.Update(valueRange, input.SpreadSheetId, range);
+            updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
+
+            return updateRequest.ExecuteAsync();
+        }
+
+        [Action("Add new row", Description = "Adds a new row to the table on the first empty line")]
+        public Task AddNewRow(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
+            [ActionParameter] AddNewRowRequest input)
+        {
+            var client = new GoogleSheetsClient(authenticationCredentialsProviders);
+
+            var range = $"{input.SheetName}!{input.CellStart ?? "A"}:{input.CellEnd ?? "Z"}";
+
+            var valueRange = new ValueRange
+            {
+                Values = new List<IList<object>> { input.Columns.Cast<object>().ToList() }
+            };
+
             var appendRequest = client.Spreadsheets.Values.Append(valueRange, input.SpreadSheetId, range);
             appendRequest.ValueInputOption = AppendRequest.ValueInputOptionEnum.USERENTERED;
             appendRequest.InsertDataOption = AppendRequest.InsertDataOptionEnum.INSERTROWS;
-            
+
             return appendRequest.ExecuteAsync();
         }
 

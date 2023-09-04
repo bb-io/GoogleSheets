@@ -1,13 +1,15 @@
-﻿using Blackbird.Applications.Sdk.Common;
+﻿using Apps.GoogleSheets.DataSourceHandler;
+using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.Sdk.Common.Dynamic;
 
 namespace Apps.GoogleSheets.Models.Requests
 {
     public class SetCellValueRequest
     {
-        [Display("Spead sheet ID")] public string SpreadSheetId { get; set; }
+        [DataSource(typeof(SpreadsheetsDataHandler))]
+        [Display("Speadsheet")] public string SpreadSheetId { get; set; }
         [Display("Sheet name")] public string SheetName { get; set; }
-        [Display("Row ID")] public string RowId { get; set; }
-        [Display("Column")] public string Column { get; set; }
+        [Display("Cell")] public string CellId { get; set; }
         [Display("Value")] public string Value { get; set; }
     }
 }

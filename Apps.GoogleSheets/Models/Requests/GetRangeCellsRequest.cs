@@ -1,25 +1,22 @@
-﻿using Blackbird.Applications.Sdk.Common;
+﻿using Apps.GoogleSheets.DataSourceHandler;
+using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.Sdk.Common.Dynamic;
 
 namespace Apps.GoogleSheets.Models.Requests
 {
     public class GetRangeCellsRequest
     {
-        [Display("Spread sheet ID")]
+        [DataSource(typeof(SpreadsheetsDataHandler))]
+        [Display("Spreadsheet")]
         public string SpreadSheetId { get; set; }
 
         [Display("Sheet name")]
         public string SheetName { get; set; }
 
-        [Display("A Row ID")]
-        public string RowIdA { get; set; }
+        [Display("Cell start")]
+        public string CellStart { get; set; }
 
-        [Display("A Column")]
-        public string ColumnA { get; set; }
-
-        [Display("B Row ID")]
-        public string RowIdB { get; set; }
-
-        [Display("B Column")]
-        public string ColumnB { get; set; }
+        [Display("Cell end")]
+        public string CellEnd { get; set; }
     }
 }

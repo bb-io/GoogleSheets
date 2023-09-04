@@ -7,7 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Blackbird.Applications.Sdk.Common" Version="2.0.10" />
+    <PackageReference Include="Blackbird.Applications.Sdk.Common" Version="2.1.0" />
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.61.0.3155" />
     <PackageReference Include="Google.Apis.Sheets.v4" Version="1.60.0.2979" />
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0" />
   </ItemGroup>
