@@ -4,7 +4,7 @@
         <TargetFramework>net7.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Product>Blackbird Google Sheets</Product>
+        <Product>Google Sheets</Product>
         <Description>Create and edit online spreadsheets. Get insights together with secure sharing in real-time and from any device</Description>
         <Version>1.0.0</Version>
         <AssemblyName>Apps.GoogleSheets</AssemblyName>
@@ -17,4 +17,7 @@
         <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <EmbeddedResource CopyToOutputDirectory="Always" Include="image\icon.png"/>
+    </ItemGroup>
 </Project>
