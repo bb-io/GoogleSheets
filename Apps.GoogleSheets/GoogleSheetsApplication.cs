@@ -1,14 +1,15 @@
 ﻿using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Authentication.OAuth2;
 using Apps.GoogleSheets.Auth.OAuth2;
+using Blackbird.Applications.Sdk.Common.Invocation;
 
 namespace Apps.GoogleSheets
 {
-    public class GoogleSheetsApplication : IApplication
+    public class GoogleSheetsApplication : BaseInvocable, IApplication
     {
         private readonly Dictionary<Type, object> _typesInstances;
 
-        public GoogleSheetsApplication()
+        public GoogleSheetsApplication(InvocationContext invocationContext) : base(invocationContext)
         {
             _typesInstances = CreateTypesInstances();
         }
@@ -31,8 +32,8 @@ namespace Apps.GoogleSheets
         {
             return new Dictionary<Type, object>
             {
-                { typeof(IOAuth2AuthorizeService), new OAuth2AuthorizeService() },
-                { typeof(IOAuth2TokenService), new OAuth2TokenService() }
+                { typeof(IOAuth2AuthorizeService), new OAuth2AuthorizeService(InvocationContext) },
+                { typeof(IOAuth2TokenService), new OAuth2TokenService(InvocationContext) }
             };
         }
     }
