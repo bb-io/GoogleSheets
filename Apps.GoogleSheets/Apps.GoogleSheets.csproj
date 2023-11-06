@@ -1,23 +1,20 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-    <PropertyGroup>
-        <TargetFramework>net7.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <Product>Google Sheets</Product>
-        <Description>Create and edit online spreadsheets. Get insights together with secure sharing in real-time and from any device</Description>
-        <Version>1.0.0</Version>
-        <AssemblyName>Apps.GoogleSheets</AssemblyName>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Blackbird.Applications.Sdk.Common" Version="2.2.0-alpha4" />
-        <PackageReference Include="Google.Apis.Drive.v3" Version="1.61.0.3155" />
-        <PackageReference Include="Google.Apis.Sheets.v4" Version="1.60.0.2979" />
-        <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <EmbeddedResource CopyToOutputDirectory="Always" Include="image\icon.png" />
-    </ItemGroup>
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Product>Google Sheets</Product>
+    <Description>Create and edit online spreadsheets. Get insights together with secure sharing in real-time and from any device</Description>
+    <Version>1.0.1</Version>
+    <AssemblyName>Apps.GoogleSheets</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Blackbird.Applications.Sdk.Common" Version="2.2.0-alpha4" />
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.61.0.3155" />
+    <PackageReference Include="Google.Apis.Sheets.v4" Version="1.60.0.2979" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="2.2.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource CopyToOutputDirectory="Always" Include="image\icon.png" />
+  </ItemGroup>
 </Project>
