@@ -42,6 +42,7 @@ namespace Apps.GoogleSheets.Actions
             var valueRange = new ValueRange { Values = new List<IList<object>> { new List<object> { input.Value } } };
             var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
             updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
+            updateRequest.IncludeValuesInResponse = true;
             return new CellDto { Value = (await updateRequest.ExecuteAsync()).UpdatedData.Values[0][0].ToString() };
         }
 
@@ -82,7 +83,10 @@ namespace Apps.GoogleSheets.Actions
             var endColumn = startColumn + updateRowRequest.Row.Count - 1;
             var range = $"{sheetRequest.SheetName}!{startColumn.ToExcelColumnAddress()}{row}:{endColumn.ToExcelColumnAddress()}{row}";
             var valueRange = new ValueRange { Values = new List<IList<object>> { updateRowRequest.Row.Select(x => (object)x).ToList() } };
-            var result = await client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range).ExecuteAsync();
+            var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
+            updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
+            updateRequest.IncludeValuesInResponse = true;
+            var result = await updateRequest.ExecuteAsync();
             return new RowDto() { Row = result.UpdatedData.Values[0].Select(x => x.ToString()).ToList() };
         }
 
@@ -153,9 +157,9 @@ namespace Apps.GoogleSheets.Actions
             [ActionParameter] SheetRequest sheetRequest)
         {
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-            var rows = await client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName)
-                .ExecuteAsync();
-            return new RowsDto() { Rows = rows.Values.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList() };
+            var request = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
+            var result = await request.ExecuteAsync();
+            return new RowsDto() { Rows = result.Values.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList() };
         }
 
         #endregion
