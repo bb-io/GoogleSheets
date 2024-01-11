@@ -10,12 +10,12 @@ using System.Threading.Tasks;
 
 namespace Apps.GoogleSheets.DataSourceHandler
 {
-    public class SpreadsheetsDataHandler : BaseInvocable, IDataSourceHandler
+    public class SpreadsheetFileDataSourceHandler : BaseInvocable, IDataSourceHandler
     {
         private IEnumerable<AuthenticationCredentialsProvider> Creds =>
             InvocationContext.AuthenticationCredentialsProviders;
 
-        public SpreadsheetsDataHandler(InvocationContext invocationContext) : base(invocationContext)
+        public SpreadsheetFileDataSourceHandler(InvocationContext invocationContext) : base(invocationContext)
         {
         }
 

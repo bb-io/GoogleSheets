@@ -4,8 +4,9 @@ using Blackbird.Applications.Sdk.Common.Dynamic;
 
 namespace Apps.GoogleSheets.Models.Requests
 {
-    public class ClearRowRequest
+    public class GetCellRequest
     {
-        [Display("Row")] public string RowId { get; set; }
+        [Display("Cell address", Description = "Cell address (e.g. \"A1\", \"B2\", \"C3\")")]
+        public string Cell { get; set; }
     }
 }
