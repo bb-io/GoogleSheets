@@ -6,9 +6,6 @@ namespace Apps.GoogleSheets.Models.Requests
 {
     public class SetCellRangeRequest
     {
-        [DataSource(typeof(SpreadsheetsDataHandler))]
-        [Display("Spreadsheet")] public string SpreadSheetId { get; set; }
-        [Display("Sheet name")] public string SheetName { get; set; }
 
         [Display("Cell start")]
         public string CellStart { get; set; }
