@@ -6,14 +6,20 @@ using static Google.Apis.Sheets.v4.SpreadsheetsResource.ValuesResource;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Apps.GoogleSheets.Extensions;
+using System.Net.Mime;
+using System.Text;
+using Apps.GoogleSheets.Models.Responses;
+using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 
 namespace Apps.GoogleSheets.Actions
 {
     [ActionList]
     public class SpreadsheetActions : BaseInvocable
     {
-        public SpreadsheetActions(InvocationContext invocationContext) : base(invocationContext)
+        private readonly IFileManagementClient _fileManagementClient;
+        public SpreadsheetActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) : base(invocationContext)
         {
+            _fileManagementClient = fileManagementClient;
         }
         #region Actions
 
@@ -112,45 +118,6 @@ namespace Apps.GoogleSheets.Actions
                 }, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
         }
 
-        //[Action("Set range of cells", Description = "Set multiple cells at once")]
-        //public Task SetCellRange(
-        //    [ActionParameter] SetCellRangeRequest input)
-        //{
-        //    var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-
-        //    var range = $"{input.SheetName}!{input.CellStart}:{input.CellEnd}";
-
-        //    var valueRange = new ValueRange
-        //    {
-        //        Values = new List<IList<object>> { input.Columns.Cast<object>().ToList() }
-        //    };
-
-        //    var updateRequest = client.Spreadsheets.Values.Update(valueRange, input.SpreadSheetId, range);
-        //    updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
-
-        //    return updateRequest.ExecuteAsync();
-        //}
-
-        //[Action("Add new row", Description = "Adds a new row to the table on the first empty line")]
-        //public Task AddNewRow(
-        //    [ActionParameter] InsertRowRequest input)
-        //{
-        //    var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-
-        //    var range = $"{input.SheetName}!{input.CellStart ?? "A"}:{input.CellEnd ?? "Z"}";
-
-        //    var valueRange = new ValueRange
-        //    {
-        //        Values = new List<IList<object>> { input.Columns.Cast<object>().ToList() }
-        //    };
-
-        //    var appendRequest = client.Spreadsheets.Values.Append(valueRange, input.SpreadSheetId, range);
-        //    appendRequest.ValueInputOption = AppendRequest.ValueInputOptionEnum.USERENTERED;
-        //    appendRequest.InsertDataOption = AppendRequest.InsertDataOptionEnum.INSERTROWS;
-
-        //    return appendRequest.ExecuteAsync();
-        //}
-
         [Action("Get sheet used range", Description = "Get used range")]
         public async Task<RowsDto> GetUsedRange(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
@@ -160,6 +127,23 @@ namespace Apps.GoogleSheets.Actions
             var request = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
             var result = await request.ExecuteAsync();
             return new RowsDto() { Rows = result.Values.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList() };
+        }
+
+        [Action("Download sheet CSV file", Description = "Download CSV file")]
+        public async Task<FileResponse> DownloadCSV(
+            [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+            [ActionParameter] SheetRequest sheetRequest)
+        {
+            var rows = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
+            var csv = new StringBuilder();
+            rows.Rows.ForEach(row =>
+            {
+                csv.AppendLine(string.Join(",", row));
+            });
+
+            using var stream = new MemoryStream(Encoding.ASCII.GetBytes(csv.ToString()));
+            var csvFile = await _fileManagementClient.UploadAsync(stream, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
+            return new FileResponse() { File = csvFile };
         }
 
         #endregion
