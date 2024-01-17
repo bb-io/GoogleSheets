@@ -1,19 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Blackbird.Applications.Sdk.Common;
+using Google.Apis.Sheets.v4.Data;
 
-namespace Apps.GoogleSheets.Dtos
+namespace Apps.GoogleSheets.Dtos;
+
+public class SheetDto
 {
-    public class SheetDto
+    public SheetDto() { }
+
+    public SheetDto(SheetProperties sheetProperties)
     {
-        public string Id { get; set; }
-
-        public string Name { get; set; }
-
-        public int Position { get; set; }
-
-        public string Visibility { get; set; }
+        SheetId = sheetProperties.SheetId.ToString()!;
+        Title = sheetProperties.Title;
+        Index = sheetProperties.Index!.Value;
+        SheetType = sheetProperties.SheetType;
     }
+    
+    [Display("Sheet ID")]
+    public string SheetId { get; set; }
+
+    public string Title { get; set; }
+
+    public int Index { get; set; }
+
+    [Display("Sheet type")]
+    public string SheetType { get; set; }
 }
