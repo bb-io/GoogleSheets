@@ -202,7 +202,7 @@ namespace Apps.GoogleSheets.Actions
                 return null;
             }
 
-            var glossaryStream = await _fileManagementClient.DownloadAsync(glossary.Glossary);
+            await using var glossaryStream = await _fileManagementClient.DownloadAsync(glossary.Glossary);
             var blackbirdGlossary = await glossaryStream.ConvertFromTBX();
 
             var sheet = await CreateSheet(spreadsheetFileRequest,
@@ -233,7 +233,7 @@ namespace Apps.GoogleSheets.Actions
 
                 rowsToAdd.Add(new List<object>(new[]
                 {
-                    entry.Id, 
+                    string.IsNullOrWhiteSpace(entry.Id) ? Guid.NewGuid().ToString() : entry.Id, 
                     entry.Definition ?? "", 
                     entry.SubjectField ?? "",
                     string.Join(';', entry.Notes ?? Enumerable.Empty<string>())
