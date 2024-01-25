@@ -331,13 +331,10 @@ namespace Apps.GoogleSheets.Actions
 
                         case var languageTerm when new Regex($@"{Term} \(.*?\)").IsMatch(languageTerm):
                             var languageCode = new Regex($@"{Term} \((.*?)\)").Match(languageTerm).Groups[1].Value;
-                            if (i < columnValues.Count)
+                            if (i < columnValues.Count && !string.IsNullOrWhiteSpace(columnValues[i]))
                                 languageSections.Add(new(languageCode,
                                     new List<GlossaryTermSection>(new GlossaryTermSection[]
                                         { new(columnValues[i].Trim()) })));
-                            else
-                                languageSections.Add(new(languageCode,
-                                    new List<GlossaryTermSection>(new GlossaryTermSection[] { new(string.Empty) })));
                             break;
 
                         case var termVariations when new Regex($@"{Variations} \(.*?\)").IsMatch(termVariations):
@@ -347,9 +344,15 @@ namespace Apps.GoogleSheets.Actions
                                     .Value;
                                 var targetLanguageSectionIndex =
                                     languageSections.FindIndex(section => section.LanguageCode == languageCode);
+                                
+                                var terms = columnValues[i]
+                                    .Split(';')
+                                    .Select(term => new GlossaryTermSection(term.Trim()));
 
-                                languageSections[targetLanguageSectionIndex].Terms.AddRange(columnValues[i].Split(';')
-                                    .Select(term => new GlossaryTermSection(term.Trim())));
+                                if (targetLanguageSectionIndex == -1)
+                                    languageSections.Add(new(languageCode, new List<GlossaryTermSection>(terms)));
+                                else
+                                    languageSections[targetLanguageSectionIndex].Terms.AddRange(terms);
                             }
 
                             break;
@@ -402,7 +405,7 @@ namespace Apps.GoogleSheets.Actions
                                     $"Glossary export from Google Sheets on {DateTime.Now.ToLocalTime().ToString("F")}"
             };
 
-            var glossaryStream = glossary.ConvertToTBX();
+            await using var glossaryStream = glossary.ConvertToTBX();
             var glossaryFileReference = 
                 await _fileManagementClient.UploadAsync(glossaryStream, MediaTypeNames.Text.Xml, $"{title}.tbx");
             return new() { Glossary = glossaryFileReference };
