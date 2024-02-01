@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <Product>Google Sheets</Product>
     <Description>Create and edit online spreadsheets. Get insights together with secure sharing in real-time and from any device</Description>
-    <Version>1.1.2</Version>
+    <Version>1.1.3</Version>
     <AssemblyName>Apps.GoogleSheets</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
