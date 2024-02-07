@@ -165,10 +165,13 @@ namespace Apps.GoogleSheets.Actions
         private const string SubjectField = "Subject field";
         private const string Definition = "Definition";
 
-        [Action("Import glossary", Description = "Import glossary as sheet")]
+        [Action("Import glossary", Description = "Import glossary as a sheet")]
         public async Task<SheetDto> ImportGlossary(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
-            [ActionParameter] GlossaryWrapper glossary)
+            [ActionParameter] GlossaryWrapper glossary,
+            [ActionParameter] [Display("Overwrite existing sheet", 
+                Description = "Overwrite an existing sheet if it has the same title as the glossary.")] 
+            bool? overwriteSheet)
         {
             static string? GetColumnValue(string columnName, GlossaryConceptEntry entry, string languageCode)
             {
@@ -204,10 +207,37 @@ namespace Apps.GoogleSheets.Actions
 
             await using var glossaryStream = await _fileManagementClient.DownloadAsync(glossary.Glossary);
             var blackbirdGlossary = await glossaryStream.ConvertFromTBX();
+            
+            var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+            var sheetTitle = blackbirdGlossary.Title ?? Path.GetFileNameWithoutExtension(glossary.Glossary.Name)!;
 
-            var sheet = await CreateSheet(spreadsheetFileRequest,
-                new() { Name = blackbirdGlossary.Title ?? Path.GetFileNameWithoutExtension(glossary.Glossary.Name)! });
+            var spreadsheet = await client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+            var sheet = spreadsheet.Sheets.FirstOrDefault(sheet => sheet.Properties.Title == sheetTitle)?.Properties;
+            
+            if (sheet != null && (overwriteSheet == null || overwriteSheet.Value == false))
+                sheetTitle += $" {DateTime.Now.ToString("g")}";
 
+            if (sheet == null || (sheet != null && (overwriteSheet == null || overwriteSheet.Value == false)))
+                sheet = (await client.Spreadsheets.BatchUpdate(
+                    new BatchUpdateSpreadsheetRequest
+                    {
+                        Requests = new List<Request>
+                        {
+                            new()
+                            {
+                                AddSheet = new AddSheetRequest
+                                {
+                                    Properties = new SheetProperties { Title = sheetTitle }
+                                }
+                            }
+                        }
+                    }, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync()).Replies[0].AddSheet.Properties;
+            else
+            {
+                await client.Spreadsheets.Values
+                    .Clear(new ClearValuesRequest(), spreadsheetFileRequest.SpreadSheetId, sheetTitle).ExecuteAsync();
+            }
+            
             var languagesPresent = blackbirdGlossary.ConceptEntries
                 .SelectMany(entry => entry.LanguageSections)
                 .Select(section => section.LanguageCode)
@@ -239,8 +269,6 @@ namespace Apps.GoogleSheets.Actions
                     string.Join(';', entry.Notes ?? Enumerable.Empty<string>())
                 }.Concat(languageRelatedValues)));
             }
-            
-            var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
             var startColumn = 1;
             var startRow = 1;
@@ -254,7 +282,7 @@ namespace Apps.GoogleSheets.Actions
             updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
             await updateRequest.ExecuteAsync();
 
-            return sheet;
+            return new(sheet);
         }
 
         [Action("Export glossary", Description = "Export glossary from sheet")]
