@@ -23,6 +23,7 @@ namespace Apps.GoogleSheets.Auth.OAuth2
                 { "scope", ApplicationConstants.Scope },
                 { "state", values["state"] },
                 { "access_type", "offline" },
+                { "prompt", "consent" },
                 { "authorization_url", Urls.Auth},
                 { "actual_redirect_uri", InvocationContext.UriInfo.AuthorizationCodeRedirectUri.ToString() },
             };
