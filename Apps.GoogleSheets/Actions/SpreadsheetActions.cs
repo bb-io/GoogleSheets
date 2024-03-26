@@ -82,7 +82,7 @@ namespace Apps.GoogleSheets.Actions
         {
             var range = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
             int newRowIndex;
-            if (range.Rows != null) { newRowIndex = range.Rows.First().All(x => string.IsNullOrWhiteSpace(x)) ? 1 : range.Rows.Count + 1; }
+            if (range != null && range?.Rows != null ) { newRowIndex = range.Rows.Count + 1; }
             else { newRowIndex = 1; }
             var startColumn = insertRowRequest.ColumnAddress ?? "A";
             return await UpdateRow(spreadsheetFileRequest, sheetRequest, new UpdateRowRequest { Row = insertRowRequest.Row, CellAddress = startColumn + newRowIndex });
