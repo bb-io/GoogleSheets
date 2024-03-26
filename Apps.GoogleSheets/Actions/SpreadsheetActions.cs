@@ -81,7 +81,9 @@ namespace Apps.GoogleSheets.Actions
             [ActionParameter] InsertRowRequest insertRowRequest)
         {
             var range = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
-            var newRowIndex = range.Rows.First().All(x => string.IsNullOrWhiteSpace(x)) ? 1 : range.Rows.Count + 1;
+            int newRowIndex;
+            if (range.Rows != null) { newRowIndex = range.Rows.First().All(x => string.IsNullOrWhiteSpace(x)) ? 1 : range.Rows.Count + 1; }
+            else { newRowIndex = 1; }
             var startColumn = insertRowRequest.ColumnAddress ?? "A";
             return await UpdateRow(spreadsheetFileRequest, sheetRequest, new UpdateRowRequest { Row = insertRowRequest.Row, CellAddress = startColumn + newRowIndex });
         }
