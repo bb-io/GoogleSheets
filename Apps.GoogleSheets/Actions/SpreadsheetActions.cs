@@ -138,7 +138,9 @@ namespace Apps.GoogleSheets.Actions
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
             var request = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
             var result = await request.ExecuteAsync();
-            return new RowsDto() { Rows = result.Values.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList() };
+            if (result != null && result?.Values != null)
+            { return new RowsDto() { Rows = result?.Values?.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList() }; }
+            else return new RowsDto() { };
         }
 
         [Action("Download sheet CSV file", Description = "Download CSV file")]
