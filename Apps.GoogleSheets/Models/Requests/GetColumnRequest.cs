@@ -10,12 +10,12 @@ namespace Apps.GoogleSheets.Models.Requests
     public class GetColumnRequest
     {
         [Display("Column", Description = "Column address (e.g. \"A\", \"B\", \"C\")")]
-        public int Column { get; set; }
+        public string Column { get; set; }
 
         [Display("Start Row", Description = "Row number (e.g. \"1\", \"2\", \"3\")")]
-        public string StartRow { get; set; }
+        public int StartRow { get; set; }
 
         [Display("End Row", Description = "Row number (e.g. \"1\", \"2\", \"3\")")]
-        public string EndRow { get; set; }
+        public int EndRow { get; set; }
     }
 }
