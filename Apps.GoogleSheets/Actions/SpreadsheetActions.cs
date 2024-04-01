@@ -164,7 +164,7 @@ namespace Apps.GoogleSheets.Actions
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
             var result = await GetSheetValues(client,
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{columnRequest.Column}{columnRequest.StartRow}", $"{columnRequest.Column}{columnRequest.EndRow}");
-            return new ColumnDto() { Column = result.Select(x => x?.ToString() ?? string.Empty).ToList() };
+            return new ColumnDto() { Column = result.Select(x => x.First().ToString() ?? string.Empty).ToList() };
         }
 
         [Action("Download sheet CSV file", Description = "Download CSV file")]
