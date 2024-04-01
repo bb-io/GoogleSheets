@@ -143,6 +143,30 @@ namespace Apps.GoogleSheets.Actions
             else return new RowsDto() { };
         }
 
+        [Action("Get range", Description = "Get specific range")]
+        public async Task<RowsDto> GetRange(
+            [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+            [ActionParameter] SheetRequest sheetRequest,
+            [ActionParameter] RangeRequest rangeRequest)
+        {
+            var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+            var result = await GetSheetValues(client,
+                spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
+            return new RowsDto() { Rows = result.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList() };
+        }
+
+        [Action("Get column", Description = "Get column values")]
+        public async Task<ColumnDto> GetColumn(
+            [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+            [ActionParameter] SheetRequest sheetRequest,
+            [ActionParameter] GetColumnRequest columnRequest)
+        {
+            var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+            var result = await GetSheetValues(client,
+                spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{columnRequest.Column}{columnRequest.StartRow}", $"{columnRequest.Column}{columnRequest.EndRow}");
+            return new ColumnDto() { Column = result.First().Select(x => x?.ToString() ?? string.Empty).ToList() };
+        }
+
         [Action("Download sheet CSV file", Description = "Download CSV file")]
         public async Task<FileResponse> DownloadCSV(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
