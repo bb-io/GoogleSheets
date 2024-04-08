@@ -39,7 +39,7 @@ namespace Apps.GoogleSheets.Actions
         {
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
             var sheetValues = await GetSheetValues(client,
-                spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, input.Cell, input.Cell);
+                spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column}{input.Row}", $"{input.Column}{input.Row}");
             return new CellDto { Value = sheetValues[0][0]?.ToString() ?? string.Empty };
         }
 
@@ -51,7 +51,7 @@ namespace Apps.GoogleSheets.Actions
             [ActionParameter] UpdateCellRequest input)
         {
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-            var range = $"{sheetRequest.SheetName}!{cellRequest.Cell}";
+            var range = $"{sheetRequest.SheetName}!{cellRequest.Column}{cellRequest.Row}";
 
             var valueRange = new ValueRange { Values = new List<IList<object>> { new List<object> { input.Value } } };
             var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);

@@ -6,7 +6,10 @@ namespace Apps.GoogleSheets.Models.Requests
 {
     public class GetCellRequest
     {
-        [Display("Cell address", Description = "Cell address (e.g. \"A1\", \"B2\", \"C3\")")]
-        public string Cell { get; set; }
+        [Display("Column", Description = "Column address (e.g. \"A\", \"B\", \"C\")")]
+        public string Column { get; set; }
+
+        [Display("Row", Description = "Row number (e.g. \"1\", \"2\", \"3\")")]
+        public int Row { get; set; }
     }
 }
