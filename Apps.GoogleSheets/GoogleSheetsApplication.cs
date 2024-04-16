@@ -2,12 +2,23 @@
 using Blackbird.Applications.Sdk.Common.Authentication.OAuth2;
 using Apps.GoogleSheets.Auth.OAuth2;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Blackbird.Applications.Sdk.Common.Metadata;
 
 namespace Apps.GoogleSheets
 {
-    public class GoogleSheetsApplication : BaseInvocable, IApplication
+    public class GoogleSheetsApplication : BaseInvocable, IApplication, ICategoryProvider
     {
         private readonly Dictionary<Type, object> _typesInstances;
+
+        public IEnumerable<ApplicationCategory> Categories
+        {
+            get =>
+            [
+                ApplicationCategory.DatabaseAndSpreadsheet, ApplicationCategory.GoogleApps,
+                ApplicationCategory.ProjectManagementAndProductivity
+            ];
+            set { }
+        }
 
         public GoogleSheetsApplication(InvocationContext invocationContext) : base(invocationContext)
         {
@@ -24,7 +35,7 @@ namespace Apps.GoogleSheets
         {
             if (!_typesInstances.TryGetValue(typeof(T), out var value))
                 throw new InvalidOperationException($"Instance of type '{typeof(T)}' not found");
-            
+
             return (T)value;
         }
 
