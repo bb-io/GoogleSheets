@@ -167,6 +167,23 @@ namespace Apps.GoogleSheets.Actions
             return new ColumnDto() { Column = result.Select(x => x.First().ToString() ?? string.Empty).ToList() };
         }
 
+        [Action("Find Sheet Row", Description = "Providing a column address and a value, return row number where said value is located")]
+        public async Task<int?> FindRow(
+            [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+            [ActionParameter] SheetRequest sheetRequest,
+            [ActionParameter] FindRowRequest input)
+        {
+            var range = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
+            var maxRowIndex = range.Rows.Count;
+            var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+            var result = await GetSheetValues(client,
+                spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column}1", $"{input.Column}{maxRowIndex}");
+            var columnValues = result.Select(x => x.First().ToString() ?? string.Empty).ToList();
+            var index = columnValues.IndexOf(input.Value);
+            index = index + 1;
+            return index == 0 ? null : index;
+        }
+
         [Action("Download sheet CSV file", Description = "Download CSV file")]
         public async Task<FileResponse> DownloadCSV(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
