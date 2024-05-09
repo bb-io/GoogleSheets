@@ -28,6 +28,8 @@ namespace Apps.GoogleSheets.DataSourceHandler
             {
                 query += $" and name contains '${context.SearchString}'";
             }
+            filesListr.IncludeItemsFromAllDrives = true;
+            filesListr.SupportsAllDrives = true;
             filesListr.Q = query;
             filesListr.PageSize = 20;
             var filesList = filesListr.Execute();
