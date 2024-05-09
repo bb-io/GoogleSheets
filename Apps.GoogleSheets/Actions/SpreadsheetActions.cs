@@ -167,7 +167,7 @@ namespace Apps.GoogleSheets.Actions
             return new ColumnDto() { Column = result.Select(x => x.First().ToString() ?? string.Empty).ToList() };
         }
 
-        [Action("Find Sheet Row", Description = "Providing a column address and a value, return row number where said value is located")]
+        [Action("Find sheet row", Description = "Providing a column address and a value, return row number where said value is located")]
         public async Task<int?> FindRow(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
             [ActionParameter] SheetRequest sheetRequest,

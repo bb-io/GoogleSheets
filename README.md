@@ -8,7 +8,26 @@ Blackbird is the new automation backbone for the language technology industry. B
 
 Google Sheets is a cloud-based spreadsheet tool that enables easy collaboration on creating, editing, and analyzing data online. With real-time collaboration features and a user-friendly interface, it's a versatile platform for organizing information, managing projects, and creating charts and graphs.
 
-## Exporting glossaries
+## Actions
+
+### Spreadsheet Actions
+
+- **Add new sheet row** Adds a new row to the first empty line of the sheet
+- **Create sheet** Creates sheet
+- **Download sheet CSV file** Downloads CSV file
+- **Find sheet row** Providing a column address and a value, returns row number where said value is located
+- **Get column** Gets column values
+- **Get range** Gets specific range
+- **Get sheet cell** Gets cell by address
+- **Get sheet row** Gets sheet row by address
+- **Get sheet used range** Gets used range
+- **Update sheet cell** Updates cell by address
+- **Update sheet row** Updates row by start address
+
+### Glossary Actions
+
+- **Import glossary** Imports glossary as a sheet
+- **Export glossary** Exports glossary from a sheet
 
 To utilize the **Export glossary** action, ensure that the Google sheet mirrors the structure obtained from the **Import glossary** action result. Follow these guidelines:
 
