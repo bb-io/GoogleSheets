@@ -96,6 +96,9 @@ namespace Apps.GoogleSheets.Actions
         {
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
             var (startColumn, row) = updateRowRequest.CellAddress.ToExcelColumnAndRow();
+
+            await ExpandRowLimits(row, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, client);
+
             var endColumn = startColumn + updateRowRequest.Row.Count - 1;
             var range = $"{sheetRequest.SheetName}!{startColumn.ToExcelColumnAddress()}{row}:{endColumn.ToExcelColumnAddress()}{row}";
             var valueRange = new ValueRange { Values = new List<IList<object>> { updateRowRequest.Row.Select(x => (object)x).ToList() } };
