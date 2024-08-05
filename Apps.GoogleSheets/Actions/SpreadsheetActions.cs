@@ -11,12 +11,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Apps.GoogleSheets.Models;
 using Apps.GoogleSheets.Models.Responses;
-using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Converters;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
-using Blackbird.Applications.Sdk.Utils.Extensions.Files;
-using RestSharp;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -51,6 +48,9 @@ namespace Apps.GoogleSheets.Actions
             [ActionParameter] UpdateCellRequest input)
         {
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+
+            await ExpandRowLimits(cellRequest.Row, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, client);
+
             var range = $"{sheetRequest.SheetName}!{cellRequest.Column}{cellRequest.Row}";
 
             var valueRange = new ValueRange { Values = new List<IList<object>> { new List<object> { input.Value } } };
@@ -96,6 +96,9 @@ namespace Apps.GoogleSheets.Actions
         {
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
             var (startColumn, row) = updateRowRequest.CellAddress.ToExcelColumnAndRow();
+
+            await ExpandRowLimits(row, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, client);
+
             var endColumn = startColumn + updateRowRequest.Row.Count - 1;
             var range = $"{sheetRequest.SheetName}!{startColumn.ToExcelColumnAddress()}{row}:{endColumn.ToExcelColumnAddress()}{row}";
             var valueRange = new ValueRange { Values = new List<IList<object>> { updateRowRequest.Row.Select(x => (object)x).ToList() } };
@@ -499,6 +502,37 @@ namespace Apps.GoogleSheets.Actions
 
             var response = await request.ExecuteAsync();
             return response.Values;
+        }
+
+        private async Task ExpandRowLimits(int rowNumber, string spreadSheetId, string sheetName,
+            GoogleSheetsClient client)
+        {
+            var spreadSheetRequest = client.Spreadsheets.Get(spreadSheetId);
+            var spreadSheet = await spreadSheetRequest.ExecuteAsync();
+            var sheet = spreadSheet.Sheets.FirstOrDefault(x => x.Properties.Title == sheetName);
+            var rowCount = sheet.Properties.GridProperties.RowCount;
+
+            var expandLength = rowNumber - rowCount;
+
+            if(expandLength > 0)
+            {
+                var expandRequest = client.Spreadsheets.BatchUpdate(new BatchUpdateSpreadsheetRequest()
+                {
+                    Requests = new List<Request>()
+                    {
+                        new Request()
+                        {
+                            AppendDimension = new()
+                            {
+                                SheetId = sheet.Properties.SheetId,
+                                Dimension = "ROWS",
+                                Length = expandLength
+                            }
+                        }
+                    }
+                }, spreadSheetId);
+                await expandRequest.ExecuteAsync();
+            }
         }
 
         #endregion
