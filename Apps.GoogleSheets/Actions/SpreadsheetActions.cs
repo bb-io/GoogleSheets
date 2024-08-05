@@ -513,7 +513,7 @@ namespace Apps.GoogleSheets.Actions
 
             if(expandLength > 0)
             {
-                client.Spreadsheets.BatchUpdate(new BatchUpdateSpreadsheetRequest()
+                var expandRequest = client.Spreadsheets.BatchUpdate(new BatchUpdateSpreadsheetRequest()
                 {
                     Requests = new List<Request>()
                     {
@@ -528,6 +528,7 @@ namespace Apps.GoogleSheets.Actions
                         }
                     }
                 }, spreadSheetId);
+                await expandRequest.ExecuteAsync();
             }
         }
 
