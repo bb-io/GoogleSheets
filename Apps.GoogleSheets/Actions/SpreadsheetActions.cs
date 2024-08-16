@@ -142,7 +142,8 @@ namespace Apps.GoogleSheets.Actions
             var request = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
             var result = await request.ExecuteAsync();
             if (result != null && result?.Values != null)
-            { return new RowsDto() { Rows = result?.Values?.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList() }; }
+            { return new RowsDto() { Rows = result?.Values?.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList(),
+            RowsCount = (double)result?.Values?.Count}; }
             else return new RowsDto() { };
         }
 
@@ -155,7 +156,8 @@ namespace Apps.GoogleSheets.Actions
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
             var result = await GetSheetValues(client,
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
-            return new RowsDto() { Rows = result.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList() };
+            return new RowsDto() { Rows = result.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList(),
+            RowsCount = result.Count};
         }
 
         [Action("Get column", Description = "Get column values")]
