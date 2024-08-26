@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Title</title>
+        <style>
+            .small-text {
+                font-weight: 400;
+                font-size: 13px;
+                line-height: 16px;
+                color: rgb(114, 77, 2);
+            }
+
+            .regular-bold-text {
+                font-weight: bold;
+                font-size: 16px;
+                line-height: 24px;
+                color: rgb(114, 77, 2);
+            }
+
+            button[data-bb-connection-custom-template="sign-in-btn"] {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: fit-content;
+                cursor: pointer;
+                gap: 24px;
+                font: 14px Roboto-Medium;
+                color: rgb(83, 74, 95);
+                border: 1px solid rgb(186, 183, 191);
+                height: 40px;
+                padding: 8px;
+                border-radius: 4px;
+                background-color: #fff;
+            }
+
+            button[data-bb-connection-custom-template="sign-in-btn"] img {
+                width: 18px;
+                height: 18px;
+            }
+
+            .oauth-wrapper {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                justify-content: stretch;
+                gap: 16px;
+                border-radius: 8px;
+                background: rgb(255, 247, 230);
+                padding: 16px;
+                color: rgb(114, 77, 2);
+            }
+
+            .oauth-wrapper[data-bb-connection-custom-template='connection-state-success'] {
+                background: rgb(233, 245, 236);
+            }
+
+            .oauth-wrapper[data-bb-connection-custom-template='connection-state-success'] > * {
+                color: rgb(19, 84, 37);
+            }
+
+            svg {
+                display: block;
+            }
+
+            .gsi-material-button {
+                -moz-user-select: none;
+                -webkit-user-select: none;
+                -ms-user-select: none;
+                -webkit-appearance: none;
+                background-color: WHITE;
+                background-image: none;
+                border: 1px solid #747775;
+                -webkit-border-radius: 4px;
+                border-radius: 4px;
+                -webkit-box-sizing: border-box;
+                box-sizing: border-box;
+                color: #1f1f1f;
+                cursor: pointer;
+                font-family: 'Roboto', arial, sans-serif;
+                font-size: 14px;
+                height: 40px;
+                letter-spacing: 0.25px;
+                outline: none;
+                overflow: hidden;
+                padding: 0 12px;
+                position: relative;
+                text-align: center;
+                -webkit-transition: background-color .218s, border-color .218s, box-shadow .218s;
+                transition: background-color .218s, border-color .218s, box-shadow .218s;
+                vertical-align: middle;
+                white-space: nowrap;
+                width: auto;
+                max-width: 400px;
+                min-width: min-content;
+            }
+
+            .gsi-material-button .gsi-material-button-icon {
+                height: 20px;
+                margin-right: 12px;
+                min-width: 20px;
+                width: 20px;
+            }
+
+            .gsi-material-button .gsi-material-button-content-wrapper {
+                -webkit-align-items: center;
+                align-items: center;
+                display: flex;
+                -webkit-flex-direction: row;
+                flex-direction: row;
+                -webkit-flex-wrap: nowrap;
+                flex-wrap: nowrap;
+                height: 100%;
+                justify-content: space-between;
+                position: relative;
+                width: 100%;
+            }
+
+            .gsi-material-button .gsi-material-button-contents {
+                -webkit-flex-grow: 1;
+                flex-grow: 1;
+                font-family: 'Roboto', arial, sans-serif;
+                font-weight: 500;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                vertical-align: top;
+            }
+
+            .gsi-material-button .gsi-material-button-state {
+                -webkit-transition: opacity .218s;
+                transition: opacity .218s;
+                bottom: 0;
+                left: 0;
+                opacity: 0;
+                position: absolute;
+                right: 0;
+                top: 0;
+            }
+
+            .gsi-material-button:disabled {
+                cursor: default;
+                background-color: #ffffff61;
+                border-color: #1f1f1f1f;
+            }
+
+            .gsi-material-button:disabled .gsi-material-button-contents {
+                opacity: 38%;
+            }
+
+            .gsi-material-button:disabled .gsi-material-button-icon {
+                opacity: 38%;
+            }
+
+            .gsi-material-button:not(:disabled):active .gsi-material-button-state, 
+            .gsi-material-button:not(:disabled):focus .gsi-material-button-state {
+                background-color: #303030;
+                opacity: 12%;
+            }
+
+            .gsi-material-button:not(:disabled):hover {
+            -webkit-box-shadow: 0 1px 2px 0 rgba(60, 64, 67, .30), 0 1px 3px 1px rgba(60, 64, 67, .15);
+                box-shadow: 0 1px 2px 0 rgba(60, 64, 67, .30), 0 1px 3px 1px rgba(60, 64, 67, .15);
+            }
+
+            .gsi-material-button:not(:disabled):hover .gsi-material-button-state {
+                background-color: #303030;
+                opacity: 8%;
+            }
+
+        </style>
+    </head>
+    <body>
+        <div
+            data-bb-connection-custom-template="auth-required"
+            class="oauth-wrapper"
+        >
+            <svg
+                width="32"
+                height="32"
+                viewBox="0 0 32 32"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <g id="OauthShield">
+                    <path
+                        id="Vector"
+                        d="M10.0712 14.625C10.1203 14.5029 10.193 14.3917 10.2851 14.2977C10.3773 14.2038 10.4871 14.1289 10.6082 14.0775C10.7293 14.0261 10.8594 13.999 10.991 13.9979C11.1226 13.9969 11.2531 14.0218 11.375 14.0712L15 15.5225V12C15 11.7348 15.1054 11.4804 15.2929 11.2929C15.4804 11.1054 15.7348 11 16 11C16.2652 11 16.5196 11.1054 16.7071 11.2929C16.8946 11.4804 17 11.7348 17 12V15.5225L20.625 14.0712C20.747 14.022 20.8774 13.9973 21.009 13.9984C21.1405 13.9996 21.2705 14.0267 21.3916 14.0781C21.5126 14.1295 21.6224 14.2043 21.7145 14.2981C21.8067 14.392 21.8795 14.503 21.9287 14.625C21.978 14.747 22.0027 14.8774 22.0016 15.009C22.0004 15.1405 21.9733 15.2705 21.9219 15.3916C21.8705 15.5126 21.7957 15.6224 21.7019 15.7145C21.608 15.8067 21.497 15.8795 21.375 15.9288L17.5863 17.4438L19.8 20.4C19.9591 20.6122 20.0275 20.8789 19.99 21.1414C19.9524 21.404 19.8122 21.6409 19.6 21.8C19.3878 21.9591 19.1211 22.0275 18.8586 21.99C18.596 21.9524 18.3591 21.8122 18.2 21.6L16 18.6663L13.8 21.6C13.7212 21.7051 13.6225 21.7936 13.5095 21.8605C13.3965 21.9274 13.2714 21.9714 13.1414 21.99C13.0114 22.0085 12.879 22.0013 12.7518 21.9687C12.6246 21.9361 12.5051 21.8788 12.4 21.8C12.2949 21.7212 12.2064 21.6225 12.1395 21.5095C12.0726 21.3965 12.0286 21.2714 12.0101 21.1414C11.9915 21.0114 11.9987 20.879 12.0313 20.7518C12.0639 20.6246 12.1212 20.5051 12.2 20.4L14.4175 17.4438L10.625 15.9288C10.5029 15.8797 10.3917 15.807 10.2977 15.7149C10.2038 15.6227 10.1289 15.5129 10.0775 15.3918C10.0261 15.2707 9.99902 15.1406 9.99795 15.009C9.99688 14.8774 10.0218 14.7469 10.0712 14.625ZM28 7V14.3462C28 25.5487 18.5225 29.2638 16.625 29.895C16.2199 30.0337 15.7801 30.0337 15.375 29.895C13.475 29.27 4 25.55 4 14.3475V7C4 6.46957 4.21071 5.96086 4.58579 5.58579C4.96086 5.21071 5.46957 5 6 5H26C26.5304 5 27.0391 5.21071 27.4142 5.58579C27.7893 5.96086 28 6.46957 28 7ZM26 7H6V14.3488C6 24.1613 14.3088 27.4338 16 27.9963C17.7075 27.4263 26 24.1512 26 14.3488V7Z"
+                        fill="#724D02"
+                    />
+                </g>
+            </svg>
+            <div class="regular-bold-text">Authorization required</div>
+            <div class="small-text">
+                Click the button below to authorize your connection on the 3rd
+                party site. Once done, return here to complete the process.
+            </div>
+            <button class="gsi-material-button" data-bb-connection-custom-template="sign-in-btn">
+                <div class="gsi-material-button-state"></div>
+                <div class="gsi-material-button-content-wrapper">
+                    <div class="gsi-material-button-icon">
+                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block;">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                        <path fill="none" d="M0 0h48v48H0z"></path>
+                    </svg>
+                    </div>
+                    <span class="gsi-material-button-contents">Sign in with Google</span>
+                    <span style="display: none;">Sign in with Google</span>
+                </div>
+            </button>
+            <p class="small-text">
+                Blackbird's use and transfer of information received from Google
+                APIs to any other app will adhere to
+                <a
+                    href="https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes"
+                    target="_blank"
+                    >Google API Services User Data Policy</a
+                >, including the Limited Use requirements.
+            </p>
+        </div>
+        <div
+            data-bb-connection-custom-template="auth-loading"
+            class="oauth-wrapper"
+        >
+            <svg
+                width="32"
+                height="32"
+                viewBox="0 0 32 32"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <g id="OauthShield">
+                    <path
+                        id="Vector"
+                        d="M10.0712 14.625C10.1203 14.5029 10.193 14.3917 10.2851 14.2977C10.3773 14.2038 10.4871 14.1289 10.6082 14.0775C10.7293 14.0261 10.8594 13.999 10.991 13.9979C11.1226 13.9969 11.2531 14.0218 11.375 14.0712L15 15.5225V12C15 11.7348 15.1054 11.4804 15.2929 11.2929C15.4804 11.1054 15.7348 11 16 11C16.2652 11 16.5196 11.1054 16.7071 11.2929C16.8946 11.4804 17 11.7348 17 12V15.5225L20.625 14.0712C20.747 14.022 20.8774 13.9973 21.009 13.9984C21.1405 13.9996 21.2705 14.0267 21.3916 14.0781C21.5126 14.1295 21.6224 14.2043 21.7145 14.2981C21.8067 14.392 21.8795 14.503 21.9287 14.625C21.978 14.747 22.0027 14.8774 22.0016 15.009C22.0004 15.1405 21.9733 15.2705 21.9219 15.3916C21.8705 15.5126 21.7957 15.6224 21.7019 15.7145C21.608 15.8067 21.497 15.8795 21.375 15.9288L17.5863 17.4438L19.8 20.4C19.9591 20.6122 20.0275 20.8789 19.99 21.1414C19.9524 21.404 19.8122 21.6409 19.6 21.8C19.3878 21.9591 19.1211 22.0275 18.8586 21.99C18.596 21.9524 18.3591 21.8122 18.2 21.6L16 18.6663L13.8 21.6C13.7212 21.7051 13.6225 21.7936 13.5095 21.8605C13.3965 21.9274 13.2714 21.9714 13.1414 21.99C13.0114 22.0085 12.879 22.0013 12.7518 21.9687C12.6246 21.9361 12.5051 21.8788 12.4 21.8C12.2949 21.7212 12.2064 21.6225 12.1395 21.5095C12.0726 21.3965 12.0286 21.2714 12.0101 21.1414C11.9915 21.0114 11.9987 20.879 12.0313 20.7518C12.0639 20.6246 12.1212 20.5051 12.2 20.4L14.4175 17.4438L10.625 15.9288C10.5029 15.8797 10.3917 15.807 10.2977 15.7149C10.2038 15.6227 10.1289 15.5129 10.0775 15.3918C10.0261 15.2707 9.99902 15.1406 9.99795 15.009C9.99688 14.8774 10.0218 14.7469 10.0712 14.625ZM28 7V14.3462C28 25.5487 18.5225 29.2638 16.625 29.895C16.2199 30.0337 15.7801 30.0337 15.375 29.895C13.475 29.27 4 25.55 4 14.3475V7C4 6.46957 4.21071 5.96086 4.58579 5.58579C4.96086 5.21071 5.46957 5 6 5H26C26.5304 5 27.0391 5.21071 27.4142 5.58579C27.7893 5.96086 28 6.46957 28 7ZM26 7H6V14.3488C6 24.1613 14.3088 27.4338 16 27.9963C17.7075 27.4263 26 24.1512 26 14.3488V7Z"
+                        fill="#724D02"
+                    />
+                </g>
+            </svg>
+            <div class="regular-bold-text">Authorization is in progress</div>
+            <div class="small-text">
+                Please don't close this window until the process has finished.
+            </div>
+            <button class="gsi-material-button" data-bb-connection-custom-template="sign-in-btn">
+                <div class="gsi-material-button-state"></div>
+                <div class="gsi-material-button-content-wrapper">
+                    <div class="gsi-material-button-icon">
+                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block;">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                        <path fill="none" d="M0 0h48v48H0z"></path>
+                    </svg>
+                    </div>
+                    <span class="gsi-material-button-contents">Sign in with Google</span>
+                    <span style="display: none;">Sign in with Google</span>
+                </div>
+            </button>
+            <p class="small-text">
+                Blackbird's use and transfer of information received from Google
+                APIs to any other app will adhere to
+                <a
+                    href="https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes"
+                    target="_blank"
+                    >Google API Services User Data Policy</a
+                >, including the Limited Use requirements.
+            </p>
+        </div>
+        <div
+            data-bb-connection-custom-template="connection-state-failed-default-error"
+            class="oauth-wrapper"
+        >
+            <svg
+                width="32"
+                height="32"
+                viewBox="0 0 32 32"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <g id="OauthShield">
+                    <path
+                        id="Vector"
+                        d="M10.0712 14.625C10.1203 14.5029 10.193 14.3917 10.2851 14.2977C10.3773 14.2038 10.4871 14.1289 10.6082 14.0775C10.7293 14.0261 10.8594 13.999 10.991 13.9979C11.1226 13.9969 11.2531 14.0218 11.375 14.0712L15 15.5225V12C15 11.7348 15.1054 11.4804 15.2929 11.2929C15.4804 11.1054 15.7348 11 16 11C16.2652 11 16.5196 11.1054 16.7071 11.2929C16.8946 11.4804 17 11.7348 17 12V15.5225L20.625 14.0712C20.747 14.022 20.8774 13.9973 21.009 13.9984C21.1405 13.9996 21.2705 14.0267 21.3916 14.0781C21.5126 14.1295 21.6224 14.2043 21.7145 14.2981C21.8067 14.392 21.8795 14.503 21.9287 14.625C21.978 14.747 22.0027 14.8774 22.0016 15.009C22.0004 15.1405 21.9733 15.2705 21.9219 15.3916C21.8705 15.5126 21.7957 15.6224 21.7019 15.7145C21.608 15.8067 21.497 15.8795 21.375 15.9288L17.5863 17.4438L19.8 20.4C19.9591 20.6122 20.0275 20.8789 19.99 21.1414C19.9524 21.404 19.8122 21.6409 19.6 21.8C19.3878 21.9591 19.1211 22.0275 18.8586 21.99C18.596 21.9524 18.3591 21.8122 18.2 21.6L16 18.6663L13.8 21.6C13.7212 21.7051 13.6225 21.7936 13.5095 21.8605C13.3965 21.9274 13.2714 21.9714 13.1414 21.99C13.0114 22.0085 12.879 22.0013 12.7518 21.9687C12.6246 21.9361 12.5051 21.8788 12.4 21.8C12.2949 21.7212 12.2064 21.6225 12.1395 21.5095C12.0726 21.3965 12.0286 21.2714 12.0101 21.1414C11.9915 21.0114 11.9987 20.879 12.0313 20.7518C12.0639 20.6246 12.1212 20.5051 12.2 20.4L14.4175 17.4438L10.625 15.9288C10.5029 15.8797 10.3917 15.807 10.2977 15.7149C10.2038 15.6227 10.1289 15.5129 10.0775 15.3918C10.0261 15.2707 9.99902 15.1406 9.99795 15.009C9.99688 14.8774 10.0218 14.7469 10.0712 14.625ZM28 7V14.3462C28 25.5487 18.5225 29.2638 16.625 29.895C16.2199 30.0337 15.7801 30.0337 15.375 29.895C13.475 29.27 4 25.55 4 14.3475V7C4 6.46957 4.21071 5.96086 4.58579 5.58579C4.96086 5.21071 5.46957 5 6 5H26C26.5304 5 27.0391 5.21071 27.4142 5.58579C27.7893 5.96086 28 6.46957 28 7ZM26 7H6V14.3488C6 24.1613 14.3088 27.4338 16 27.9963C17.7075 27.4263 26 24.1512 26 14.3488V7Z"
+                        fill="#761722"
+                    />
+                </g>
+            </svg>
+            <div class="regular-bold-text">Oops</div>
+            <div class="small-text">
+                We couldn’t authenticate with the credentials provided. Check
+                your credentials, or try again.
+            </div>
+            <button class="gsi-material-button" data-bb-connection-custom-template="sign-in-btn">
+                <div class="gsi-material-button-state"></div>
+                <div class="gsi-material-button-content-wrapper">
+                    <div class="gsi-material-button-icon">
+                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block;">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                        <path fill="none" d="M0 0h48v48H0z"></path>
+                    </svg>
+                    </div>
+                    <span class="gsi-material-button-contents">Sign in with Google</span>
+                    <span style="display: none;">Sign in with Google</span>
+                </div>
+            </button>
+            <p class="small-text">
+                Blackbird's use and transfer of information received from Google
+                APIs to any other app will adhere to
+                <a
+                    href="https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes"
+                    target="_blank"
+                    >Google API Services User Data Policy</a
+                >, including the Limited Use requirements.
+            </p>
+        </div>
+        <div
+            data-bb-connection-custom-template="connection-state-failed-auth-popup-closed"
+            class="oauth-wrapper"
+        >
+            <svg
+                width="32"
+                height="32"
+                viewBox="0 0 32 32"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <g id="OauthShield">
+                    <path
+                        id="Vector"
+                        d="M10.0712 14.625C10.1203 14.5029 10.193 14.3917 10.2851 14.2977C10.3773 14.2038 10.4871 14.1289 10.6082 14.0775C10.7293 14.0261 10.8594 13.999 10.991 13.9979C11.1226 13.9969 11.2531 14.0218 11.375 14.0712L15 15.5225V12C15 11.7348 15.1054 11.4804 15.2929 11.2929C15.4804 11.1054 15.7348 11 16 11C16.2652 11 16.5196 11.1054 16.7071 11.2929C16.8946 11.4804 17 11.7348 17 12V15.5225L20.625 14.0712C20.747 14.022 20.8774 13.9973 21.009 13.9984C21.1405 13.9996 21.2705 14.0267 21.3916 14.0781C21.5126 14.1295 21.6224 14.2043 21.7145 14.2981C21.8067 14.392 21.8795 14.503 21.9287 14.625C21.978 14.747 22.0027 14.8774 22.0016 15.009C22.0004 15.1405 21.9733 15.2705 21.9219 15.3916C21.8705 15.5126 21.7957 15.6224 21.7019 15.7145C21.608 15.8067 21.497 15.8795 21.375 15.9288L17.5863 17.4438L19.8 20.4C19.9591 20.6122 20.0275 20.8789 19.99 21.1414C19.9524 21.404 19.8122 21.6409 19.6 21.8C19.3878 21.9591 19.1211 22.0275 18.8586 21.99C18.596 21.9524 18.3591 21.8122 18.2 21.6L16 18.6663L13.8 21.6C13.7212 21.7051 13.6225 21.7936 13.5095 21.8605C13.3965 21.9274 13.2714 21.9714 13.1414 21.99C13.0114 22.0085 12.879 22.0013 12.7518 21.9687C12.6246 21.9361 12.5051 21.8788 12.4 21.8C12.2949 21.7212 12.2064 21.6225 12.1395 21.5095C12.0726 21.3965 12.0286 21.2714 12.0101 21.1414C11.9915 21.0114 11.9987 20.879 12.0313 20.7518C12.0639 20.6246 12.1212 20.5051 12.2 20.4L14.4175 17.4438L10.625 15.9288C10.5029 15.8797 10.3917 15.807 10.2977 15.7149C10.2038 15.6227 10.1289 15.5129 10.0775 15.3918C10.0261 15.2707 9.99902 15.1406 9.99795 15.009C9.99688 14.8774 10.0218 14.7469 10.0712 14.625ZM28 7V14.3462C28 25.5487 18.5225 29.2638 16.625 29.895C16.2199 30.0337 15.7801 30.0337 15.375 29.895C13.475 29.27 4 25.55 4 14.3475V7C4 6.46957 4.21071 5.96086 4.58579 5.58579C4.96086 5.21071 5.46957 5 6 5H26C26.5304 5 27.0391 5.21071 27.4142 5.58579C27.7893 5.96086 28 6.46957 28 7ZM26 7H6V14.3488C6 24.1613 14.3088 27.4338 16 27.9963C17.7075 27.4263 26 24.1512 26 14.3488V7Z"
+                        fill="#761722"
+                    />
+                </g>
+            </svg>
+            <div class="regular-bold-text">Oops</div>
+            <div class="small-text">
+                Whoa there! It seems the authentication window flew the coop.
+                Click the button again to complete your authentication.
+            </div>
+            <button class="gsi-material-button" data-bb-connection-custom-template="sign-in-btn">
+                <div class="gsi-material-button-state"></div>
+                <div class="gsi-material-button-content-wrapper">
+                    <div class="gsi-material-button-icon">
+                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block;">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                        <path fill="none" d="M0 0h48v48H0z"></path>
+                    </svg>
+                    </div>
+                    <span class="gsi-material-button-contents">Sign in with Google</span>
+                    <span style="display: none;">Sign in with Google</span>
+                </div>
+            </button>
+            <p class="small-text">
+                Blackbird's use and transfer of information received from Google
+                APIs to any other app will adhere to
+                <a
+                    href="https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes"
+                    target="_blank"
+                    >Google API Services User Data Policy</a
+                >, including the Limited Use requirements.
+            </p>
+        </div>
+        <div
+            data-bb-connection-custom-template="connection-state-failed-auth-popup-restricted"
+            class="oauth-wrapper"
+        >
+            <svg
+                width="32"
+                height="32"
+                viewBox="0 0 32 32"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <g id="OauthShield">
+                    <path
+                        id="Vector"
+                        d="M10.0712 14.625C10.1203 14.5029 10.193 14.3917 10.2851 14.2977C10.3773 14.2038 10.4871 14.1289 10.6082 14.0775C10.7293 14.0261 10.8594 13.999 10.991 13.9979C11.1226 13.9969 11.2531 14.0218 11.375 14.0712L15 15.5225V12C15 11.7348 15.1054 11.4804 15.2929 11.2929C15.4804 11.1054 15.7348 11 16 11C16.2652 11 16.5196 11.1054 16.7071 11.2929C16.8946 11.4804 17 11.7348 17 12V15.5225L20.625 14.0712C20.747 14.022 20.8774 13.9973 21.009 13.9984C21.1405 13.9996 21.2705 14.0267 21.3916 14.0781C21.5126 14.1295 21.6224 14.2043 21.7145 14.2981C21.8067 14.392 21.8795 14.503 21.9287 14.625C21.978 14.747 22.0027 14.8774 22.0016 15.009C22.0004 15.1405 21.9733 15.2705 21.9219 15.3916C21.8705 15.5126 21.7957 15.6224 21.7019 15.7145C21.608 15.8067 21.497 15.8795 21.375 15.9288L17.5863 17.4438L19.8 20.4C19.9591 20.6122 20.0275 20.8789 19.99 21.1414C19.9524 21.404 19.8122 21.6409 19.6 21.8C19.3878 21.9591 19.1211 22.0275 18.8586 21.99C18.596 21.9524 18.3591 21.8122 18.2 21.6L16 18.6663L13.8 21.6C13.7212 21.7051 13.6225 21.7936 13.5095 21.8605C13.3965 21.9274 13.2714 21.9714 13.1414 21.99C13.0114 22.0085 12.879 22.0013 12.7518 21.9687C12.6246 21.9361 12.5051 21.8788 12.4 21.8C12.2949 21.7212 12.2064 21.6225 12.1395 21.5095C12.0726 21.3965 12.0286 21.2714 12.0101 21.1414C11.9915 21.0114 11.9987 20.879 12.0313 20.7518C12.0639 20.6246 12.1212 20.5051 12.2 20.4L14.4175 17.4438L10.625 15.9288C10.5029 15.8797 10.3917 15.807 10.2977 15.7149C10.2038 15.6227 10.1289 15.5129 10.0775 15.3918C10.0261 15.2707 9.99902 15.1406 9.99795 15.009C9.99688 14.8774 10.0218 14.7469 10.0712 14.625ZM28 7V14.3462C28 25.5487 18.5225 29.2638 16.625 29.895C16.2199 30.0337 15.7801 30.0337 15.375 29.895C13.475 29.27 4 25.55 4 14.3475V7C4 6.46957 4.21071 5.96086 4.58579 5.58579C4.96086 5.21071 5.46957 5 6 5H26C26.5304 5 27.0391 5.21071 27.4142 5.58579C27.7893 5.96086 28 6.46957 28 7ZM26 7H6V14.3488C6 24.1613 14.3088 27.4338 16 27.9963C17.7075 27.4263 26 24.1512 26 14.3488V7Z"
+                        fill="#761722"
+                    />
+                </g>
+            </svg>
+            <div class="regular-bold-text">Oops</div>
+            <div class="small-text">
+                Oops, looks like your browser's playing hide-and-seek with
+                popups! Please enable them, and try again.
+            </div>
+            <button class="gsi-material-button" data-bb-connection-custom-template="sign-in-btn">
+                <div class="gsi-material-button-state"></div>
+                <div class="gsi-material-button-content-wrapper">
+                    <div class="gsi-material-button-icon">
+                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block;">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                        <path fill="none" d="M0 0h48v48H0z"></path>
+                    </svg>
+                    </div>
+                    <span class="gsi-material-button-contents">Sign in with Google</span>
+                    <span style="display: none;">Sign in with Google</span>
+                </div>
+            </button>
+            <p class="small-text">
+                Blackbird's use and transfer of information received from Google
+                APIs to any other app will adhere to
+                <a
+                    href="https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes"
+                    target="_blank"
+                    >Google API Services User Data Policy</a
+                >, including the Limited Use requirements.
+            </p>
+        </div>
+        <div
+            data-bb-connection-custom-template="connection-state-failed-auth-popup-error"
+            class="oauth-wrapper"
+        >
+            <svg
+                width="32"
+                height="32"
+                viewBox="0 0 32 32"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <g id="OauthShield">
+                    <path
+                        id="Vector"
+                        d="M10.0712 14.625C10.1203 14.5029 10.193 14.3917 10.2851 14.2977C10.3773 14.2038 10.4871 14.1289 10.6082 14.0775C10.7293 14.0261 10.8594 13.999 10.991 13.9979C11.1226 13.9969 11.2531 14.0218 11.375 14.0712L15 15.5225V12C15 11.7348 15.1054 11.4804 15.2929 11.2929C15.4804 11.1054 15.7348 11 16 11C16.2652 11 16.5196 11.1054 16.7071 11.2929C16.8946 11.4804 17 11.7348 17 12V15.5225L20.625 14.0712C20.747 14.022 20.8774 13.9973 21.009 13.9984C21.1405 13.9996 21.2705 14.0267 21.3916 14.0781C21.5126 14.1295 21.6224 14.2043 21.7145 14.2981C21.8067 14.392 21.8795 14.503 21.9287 14.625C21.978 14.747 22.0027 14.8774 22.0016 15.009C22.0004 15.1405 21.9733 15.2705 21.9219 15.3916C21.8705 15.5126 21.7957 15.6224 21.7019 15.7145C21.608 15.8067 21.497 15.8795 21.375 15.9288L17.5863 17.4438L19.8 20.4C19.9591 20.6122 20.0275 20.8789 19.99 21.1414C19.9524 21.404 19.8122 21.6409 19.6 21.8C19.3878 21.9591 19.1211 22.0275 18.8586 21.99C18.596 21.9524 18.3591 21.8122 18.2 21.6L16 18.6663L13.8 21.6C13.7212 21.7051 13.6225 21.7936 13.5095 21.8605C13.3965 21.9274 13.2714 21.9714 13.1414 21.99C13.0114 22.0085 12.879 22.0013 12.7518 21.9687C12.6246 21.9361 12.5051 21.8788 12.4 21.8C12.2949 21.7212 12.2064 21.6225 12.1395 21.5095C12.0726 21.3965 12.0286 21.2714 12.0101 21.1414C11.9915 21.0114 11.9987 20.879 12.0313 20.7518C12.0639 20.6246 12.1212 20.5051 12.2 20.4L14.4175 17.4438L10.625 15.9288C10.5029 15.8797 10.3917 15.807 10.2977 15.7149C10.2038 15.6227 10.1289 15.5129 10.0775 15.3918C10.0261 15.2707 9.99902 15.1406 9.99795 15.009C9.99688 14.8774 10.0218 14.7469 10.0712 14.625ZM28 7V14.3462C28 25.5487 18.5225 29.2638 16.625 29.895C16.2199 30.0337 15.7801 30.0337 15.375 29.895C13.475 29.27 4 25.55 4 14.3475V7C4 6.46957 4.21071 5.96086 4.58579 5.58579C4.96086 5.21071 5.46957 5 6 5H26C26.5304 5 27.0391 5.21071 27.4142 5.58579C27.7893 5.96086 28 6.46957 28 7ZM26 7H6V14.3488C6 24.1613 14.3088 27.4338 16 27.9963C17.7075 27.4263 26 24.1512 26 14.3488V7Z"
+                        fill="#761722"
+                    />
+                </g>
+            </svg>
+            <div class="regular-bold-text">Oops</div>
+            <div class="small-text" data-bb-connection-custom-template="auth-popup-error-message"></div>
+            <button class="gsi-material-button" data-bb-connection-custom-template="sign-in-btn">
+                <div class="gsi-material-button-state"></div>
+                <div class="gsi-material-button-content-wrapper">
+                    <div class="gsi-material-button-icon">
+                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block;">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                        <path fill="none" d="M0 0h48v48H0z"></path>
+                    </svg>
+                    </div>
+                    <span class="gsi-material-button-contents">Sign in with Google</span>
+                    <span style="display: none;">Sign in with Google</span>
+                </div>
+            </button>
+            <p class="small-text">
+                Blackbird's use and transfer of information received from Google
+                APIs to any other app will adhere to
+                <a
+                    href="https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes"
+                    target="_blank"
+                    >Google API Services User Data Policy</a
+                >, including the Limited Use requirements.
+            </p>
+        </div>
+        <div
+            data-bb-connection-custom-template="connection-state-success"
+            class="oauth-wrapper"
+        >
+            <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <path
+                    d="M16.125 9.75L10.6219 15L7.875 12.375"
+                    stroke="#229843"
+                    stroke-width="1.25"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+                <path
+                    d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z"
+                    stroke="#229843"
+                    stroke-width="1.25"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+            </svg>
+            <div class="regular-bold-text">Connection is set</div>
+            <div class="small-text">
+                To update connection, click the button below to authorize your
+                connection on the 3rd party site. When finished, come back here
+                to complete the process.
+            </div>
+            <button class="gsi-material-button" data-bb-connection-custom-template="sign-in-btn">
+                <div class="gsi-material-button-state"></div>
+                <div class="gsi-material-button-content-wrapper">
+                    <div class="gsi-material-button-icon">
+                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" xmlns:xlink="http://www.w3.org/1999/xlink" style="display: block;">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                        <path fill="none" d="M0 0h48v48H0z"></path>
+                    </svg>
+                    </div>
+                    <span class="gsi-material-button-contents">Sign in with Google</span>
+                    <span style="display: none;">Sign in with Google</span>
+                </div>
+            </button>
+            <p class="small-text">
+                Blackbird's use and transfer of information received from Google
+                APIs to any other app will adhere to
+                <a
+                    href="https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes"
+                    target="_blank"
+                    >Google API Services User Data Policy</a
+                >, including the Limited Use requirements.
+            </p>
+        </div>
+    </body>
+</html>
