@@ -186,7 +186,7 @@ namespace Apps.GoogleSheets.Actions
             var (Column, startRow) = updateRowRequest.CellAddress.ToExcelColumnAndRow();
             var endRow = startRow + updateRowRequest.Row.Count - 1;
             await ExpandRowLimits(endRow, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, client);
-            var range = $"{sheetRequest.SheetName}!{Column}{startRow}:{Column}{endRow}";
+            var range = $"{sheetRequest.SheetName}!{updateRowRequest.CellAddress}:{Column}{endRow}";
             var valueRange = new ValueRange
             {
                 Values = new List<IList<object>> { updateRowRequest.Row.Select(x => (object)x).ToList() },
