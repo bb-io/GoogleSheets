@@ -14,6 +14,7 @@ using Apps.GoogleSheets.Models.Responses;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Converters;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
+using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -143,8 +144,18 @@ namespace Apps.GoogleSheets.Actions
             var result = await request.ExecuteAsync();
             if (result != null && result?.Values != null)
             { return new RowsDto() { Rows = result?.Values?.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList(),
-            RowsCount = (double)result?.Values?.Count}; }
+            RowsCount = (double)result?.Values?.Count, RowIds = GetIdsRange(1,result.Values.Count) }; }
             else return new RowsDto() { };
+        }
+
+        private List<int> GetIdsRange(int start, int end)
+        {
+            var myList = new List<int>();
+            for (var i = start; i <= end; i++)
+            {
+                myList.Add(i);
+            }
+            return myList;
         }
 
         [Action("Get range", Description = "Get specific range")]
@@ -156,8 +167,10 @@ namespace Apps.GoogleSheets.Actions
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
             var result = await GetSheetValues(client,
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
+            var (startColumn, startRow) = rangeRequest.StartCell.ToExcelColumnAndRow();
+            var (endColumn, endRow) = rangeRequest.StartCell.ToExcelColumnAndRow();
             return new RowsDto() { Rows = result.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList(),
-            RowsCount = result.Count};
+            RowsCount = result.Count, RowIds = GetIdsRange(startRow, endRow)};
         }
 
         [Action("Get column", Description = "Get column values")]
@@ -170,6 +183,24 @@ namespace Apps.GoogleSheets.Actions
             var result = await GetSheetValues(client,
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{columnRequest.Column}{columnRequest.StartRow}", $"{columnRequest.Column}{columnRequest.EndRow}");
             return new ColumnDto() { Column = result.Select(x => x.First().ToString() ?? string.Empty).ToList() };
+        }
+
+        [Action("Update sheet column", Description = "Update column by start address")]
+        public async Task UpdateColumn(
+            [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+            [ActionParameter] SheetRequest sheetRequest,
+            [ActionParameter] UpdateRowRequest updateRowRequest)
+        {
+            var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+            var (Column, startRow) = updateRowRequest.CellAddress.ToExcelColumnAndRow();
+            var endRow = startRow + updateRowRequest.Row.Count - 1;
+            await ExpandRowLimits(endRow, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, client);
+            var range = $"{sheetRequest.SheetName}!{Column}{startRow}:{Column}{endRow}";
+            var valueRange = new ValueRange { Values = new List<IList<object>> { updateRowRequest.Row.Select(x => (object)x).ToList() } };
+            var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
+            updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
+            updateRequest.IncludeValuesInResponse = true;
+            var result = await updateRequest.ExecuteAsync();
         }
 
         [Action("Find sheet row", Description = "Providing a column address and a value, return row number where said value is located")]
