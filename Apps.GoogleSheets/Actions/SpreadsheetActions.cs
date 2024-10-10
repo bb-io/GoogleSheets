@@ -187,7 +187,11 @@ namespace Apps.GoogleSheets.Actions
             var endRow = startRow + updateRowRequest.Row.Count - 1;
             await ExpandRowLimits(endRow, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, client);
             var range = $"{sheetRequest.SheetName}!{Column}{startRow}:{Column}{endRow}";
-            var valueRange = new ValueRange { Values = new List<IList<object>> { updateRowRequest.Row.Select(x => (object)x).ToList().ToList() } };
+            var valueRange = new ValueRange
+            {
+                Values = new List<IList<object>> { updateRowRequest.Row.Select(x => (object)x).ToList() },
+                MajorDimension = "COLUMNS"
+            };
             var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
             updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
             updateRequest.IncludeValuesInResponse = true;
@@ -531,7 +535,7 @@ namespace Apps.GoogleSheets.Actions
         private List<int> GetIdsRange(int start, int end)
         {
             var myList = new List<int>();
-            for (var i = start; i == end; i++)
+            for (var i = start; i <= end; i++)
             {
                 myList.Add(i);
             }
