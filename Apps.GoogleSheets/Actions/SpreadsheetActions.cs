@@ -159,7 +159,7 @@ namespace Apps.GoogleSheets.Actions
             var result = await GetSheetValues(client,
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
             var (startColumn, startRow) = rangeRequest.StartCell.ToExcelColumnAndRow();
-            var (endColumn, endRow) = rangeRequest.StartCell.ToExcelColumnAndRow();
+            var (endColumn, endRow) = rangeRequest.EndCell.ToExcelColumnAndRow();
             return new RowsDto() { Rows = result.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList(),
             RowsCount = result.Count, RowIds = GetIdsRange(startRow, endRow)};
         }
@@ -187,7 +187,7 @@ namespace Apps.GoogleSheets.Actions
             var endRow = startRow + updateRowRequest.Row.Count - 1;
             await ExpandRowLimits(endRow, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, client);
             var range = $"{sheetRequest.SheetName}!{Column}{startRow}:{Column}{endRow}";
-            var valueRange = new ValueRange { Values = new List<IList<object>> { updateRowRequest.Row.Select(x => (object)x).ToList() } };
+            var valueRange = new ValueRange { Values = new List<IList<object>> { updateRowRequest.Row.Select(x => (object)x).ToList().ToList() } };
             var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
             updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
             updateRequest.IncludeValuesInResponse = true;
