@@ -8,7 +8,10 @@ namespace Apps.GoogleSheets.Dtos
     {
         public List<List<string>> Rows { get; set; }
 
-        [Display("Rows Count")]
+        [Display("Rows count")]
         public double RowsCount { get; set; }
+
+        [Display("Row numbers")]
+        public IEnumerable<int> RowIds {get; set;}
     }
 }
