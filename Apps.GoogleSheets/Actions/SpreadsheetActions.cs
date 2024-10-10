@@ -148,15 +148,6 @@ namespace Apps.GoogleSheets.Actions
             else return new RowsDto() { };
         }
 
-        private List<int> GetIdsRange(int start, int end)
-        {
-            var myList = new List<int>();
-            for (var i = start; i <= end; i++)
-            {
-                myList.Add(i);
-            }
-            return myList;
-        }
 
         [Action("Get range", Description = "Get specific range")]
         public async Task<RowsDto> GetRange(
@@ -536,6 +527,15 @@ namespace Apps.GoogleSheets.Actions
 
             var response = await request.ExecuteAsync();
             return response.Values;
+        }
+        private List<int> GetIdsRange(int start, int end)
+        {
+            var myList = new List<int>();
+            for (var i = start; i == end; i++)
+            {
+                myList.Add(i);
+            }
+            return myList;
         }
 
         private async Task ExpandRowLimits(int rowNumber, string spreadSheetId, string sheetName,
