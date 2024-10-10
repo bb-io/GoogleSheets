@@ -186,7 +186,7 @@ namespace Apps.GoogleSheets.Actions
         }
 
         [Action("Update sheet column", Description = "Update column by start address")]
-        public async Task UpdateColumn(
+        public async Task<ColumnDto> UpdateColumn(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
             [ActionParameter] SheetRequest sheetRequest,
             [ActionParameter] UpdateRowRequest updateRowRequest)
@@ -201,6 +201,7 @@ namespace Apps.GoogleSheets.Actions
             updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
             updateRequest.IncludeValuesInResponse = true;
             var result = await updateRequest.ExecuteAsync();
+            return new ColumnDto() { Column = result.UpdatedData.Values[0].Select(x => x.ToString()).ToList() };
         }
 
         [Action("Find sheet row", Description = "Providing a column address and a value, return row number where said value is located")]
