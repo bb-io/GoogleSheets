@@ -23,6 +23,7 @@ Google Sheets is a cloud-based spreadsheet tool that enables easy collaboration 
 - **Get sheet used range** Gets used range
 - **Update sheet cell** Updates cell by address
 - **Update sheet row** Updates row by start address
+- **Update sheet column** Updates column by start address
 
 ### Glossary Actions
 
