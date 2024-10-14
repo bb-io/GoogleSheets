@@ -143,8 +143,12 @@ namespace Apps.GoogleSheets.Actions
             var request = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
             var result = await request.ExecuteAsync();
             if (result != null && result?.Values != null)
-            { return new RowsDto() { Rows = result?.Values?.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList(),
-            RowsCount = (double)result?.Values?.Count, RowIds = GetIdsRange(1,result.Values.Count) }; }
+            {
+                var rangeIDs = GetIdsRange(1, result.Values.Count);
+                var rows = result?.Values?.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList();
+                return new RowsDto() { Rows = rangeIDs.Zip(rows, (id, rowvalues) => new _row { RowId = id, Values = rowvalues }).ToList(),
+                RowsCount = (double)result?.Values?.Count}; 
+            }
             else return new RowsDto() { };
         }
 
@@ -160,8 +164,13 @@ namespace Apps.GoogleSheets.Actions
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
             var (startColumn, startRow) = rangeRequest.StartCell.ToExcelColumnAndRow();
             var (endColumn, endRow) = rangeRequest.EndCell.ToExcelColumnAndRow();
-            return new RowsDto() { Rows = result.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList(),
-            RowsCount = result.Count, RowIds = GetIdsRange(startRow, endRow)};
+            var rangeIDs = GetIdsRange(startRow, endRow);
+            var rows = result.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList();
+            return new RowsDto()
+            {
+                Rows = rangeIDs.Zip(rows, (id, rowvalues) => new _row { RowId = id, Values = rowvalues }).ToList(),
+                RowsCount = result.Count,
+            };
         }
 
         [Action("Get column", Description = "Get column values")]
@@ -225,7 +234,7 @@ namespace Apps.GoogleSheets.Actions
             var csv = new StringBuilder();
             rows.Rows.ForEach(row =>
             {
-                csv.AppendLine(string.Join(",", row));
+                csv.AppendLine(string.Join(",", row.Values));
             });
 
             using var stream = new MemoryStream(Encoding.ASCII.GetBytes(csv.ToString()));
@@ -370,7 +379,7 @@ namespace Apps.GoogleSheets.Actions
             [ActionParameter] [Display("Source description")]
             string? sourceDescription)
         {
-            var rows = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
+            var rows = await GetUsedRangeForGlossary(spreadsheetFileRequest, sheetRequest);
             var maxLength = rows.Rows.Max(list => list.Count);
 
             var parsedGlossary = new Dictionary<string, List<string>>();
@@ -514,6 +523,18 @@ namespace Apps.GoogleSheets.Actions
             var glossaryFileReference = 
                 await _fileManagementClient.UploadAsync(glossaryStream, MediaTypeNames.Text.Xml, $"{title}.tbx");
             return new() { Glossary = glossaryFileReference };
+        }
+
+        private async Task<SimplerRowsDto> GetUsedRangeForGlossary(SpreadsheetFileRequest spreadsheetFileRequest, SheetRequest sheetRequest)
+        {
+            var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+            var request = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
+            var result = await request.ExecuteAsync();
+            if (result != null && result?.Values != null)
+            {
+                return new SimplerRowsDto() {Rows = result?.Values?.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList()};
+            }
+            else return new SimplerRowsDto() { };
         }
 
         #endregion
