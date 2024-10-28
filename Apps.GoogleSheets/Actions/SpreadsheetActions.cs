@@ -14,7 +14,6 @@ using Apps.GoogleSheets.Models.Responses;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Converters;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
-using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace Apps.GoogleSheets.Actions
 {
