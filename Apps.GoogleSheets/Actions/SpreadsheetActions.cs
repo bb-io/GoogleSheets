@@ -241,6 +241,21 @@ namespace Apps.GoogleSheets.Actions
             return new FileResponse() { File = csvFile };
         }
         
+        [Action("Download spreadsheet as PDF file", Description = "Download specific spreadsheet in PDF")]
+        public async Task<FileResponse> DownloadSpreadsheetAsPdf(
+            [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest)
+        {
+            var client = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
+
+            var fileStream = await client.Files
+                .Export(spreadsheetFileRequest.SpreadSheetId, MediaTypeNames.Application.Pdf).ExecuteAsStreamAsync();
+            return new()
+            {
+                File = await _fileManagementClient.UploadAsync(fileStream, MediaTypeNames.Application.Pdf,
+                    $"{spreadsheetFileRequest.SpreadSheetId}.pdf")
+            };
+        }
+        
         #region Glossaries
         
         private const string Term = "Term";
