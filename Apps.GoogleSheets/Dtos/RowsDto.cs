@@ -1,7 +1,6 @@
 ﻿
 
 using Blackbird.Applications.Sdk.Common;
-using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace Apps.GoogleSheets.Dtos
 {

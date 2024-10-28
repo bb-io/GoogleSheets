@@ -14,7 +14,6 @@ using Apps.GoogleSheets.Models.Responses;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Converters;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
-using DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -240,6 +239,21 @@ namespace Apps.GoogleSheets.Actions
             using var stream = new MemoryStream(Encoding.ASCII.GetBytes(csv.ToString()));
             var csvFile = await _fileManagementClient.UploadAsync(stream, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
             return new FileResponse() { File = csvFile };
+        }
+        
+        [Action("Download spreadsheet as PDF file", Description = "Download specific spreadsheet in PDF")]
+        public async Task<FileResponse> DownloadSpreadsheetAsPdf(
+            [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest)
+        {
+            var client = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
+
+            var fileStream = await client.Files
+                .Export(spreadsheetFileRequest.SpreadSheetId, MediaTypeNames.Application.Pdf).ExecuteAsStreamAsync();
+            return new()
+            {
+                File = await _fileManagementClient.UploadAsync(fileStream, MediaTypeNames.Application.Pdf,
+                    $"{spreadsheetFileRequest.SpreadSheetId}.pdf")
+            };
         }
         
         #region Glossaries

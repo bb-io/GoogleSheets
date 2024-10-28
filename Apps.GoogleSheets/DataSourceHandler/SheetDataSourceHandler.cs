@@ -1,14 +1,8 @@
 ﻿using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Apps.GoogleSheets.Models.Requests;
-using System.Collections;
 using Google.Apis.Sheets.v4.Data;
 
 namespace Apps.GoogleSheets.DataSourceHandler
