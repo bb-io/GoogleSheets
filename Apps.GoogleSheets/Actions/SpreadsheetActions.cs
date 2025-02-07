@@ -73,7 +73,7 @@ namespace Apps.GoogleSheets.Actions
             var result = await GetSheetValues(client,
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column1}{ParseRow(input.RowIndex)}", $"{input.Column2}{ParseRow(input.RowIndex)}");
 
-            return new RowDto { Row = result.First().Select(x => x?.ToString() ?? string.Empty).ToList() };
+            return new RowDto { Row = result.FirstOrDefault()?.Select(x => x?.ToString() ?? string.Empty)?.ToList() ?? new List<string>() };
         }
 
         [Action("Add new sheet row", Description = "Adds a new row to the first empty line of the sheet")]
@@ -183,7 +183,7 @@ namespace Apps.GoogleSheets.Actions
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
             var result = await GetSheetValues(client,
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{columnRequest.Column}{ParseRow(columnRequest.StartRow)}", $"{columnRequest.Column}{ParseRow(columnRequest.EndRow)}");
-            return new ColumnDto() { Column = result.Select(x => x.First().ToString() ?? string.Empty).ToList() };
+            return new ColumnDto() { Column = result.Select(x => x.FirstOrDefault()?.ToString() ?? string.Empty).ToList() };
         }
 
         [Action("Update sheet column", Description = "Update column by start address")]
@@ -220,7 +220,7 @@ namespace Apps.GoogleSheets.Actions
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
             var result = await GetSheetValues(client,
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column}1", $"{input.Column}{maxRowIndex}");
-            var columnValues = result.Select(x => x.First().ToString() ?? string.Empty).ToList();
+            var columnValues = result.Select(x => x.FirstOrDefault()?.ToString() ?? string.Empty).ToList();
             var index = columnValues.IndexOf(input.Value);
             index = index + 1;
             return index == 0 ? null : index;
