@@ -8,9 +8,9 @@ namespace Apps.GoogleSheets.Models.Requests
         public string Column { get; set; }
 
         [Display("Start Row", Description = "Row number (e.g. \"1\", \"2\", \"3\")")]
-        public int StartRow { get; set; }
+        public string StartRow { get; set; }
 
         [Display("End Row", Description = "Row number (e.g. \"1\", \"2\", \"3\")")]
-        public int EndRow { get; set; }
+        public string EndRow { get; set; }
     }
 }

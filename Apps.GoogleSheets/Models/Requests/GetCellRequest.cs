@@ -8,6 +8,6 @@ namespace Apps.GoogleSheets.Models.Requests
         public string Column { get; set; }
 
         [Display("Row", Description = "Row number (e.g. \"1\", \"2\", \"3\")")]
-        public int Row { get; set; }
+        public string Row { get; set; }
     }
 }

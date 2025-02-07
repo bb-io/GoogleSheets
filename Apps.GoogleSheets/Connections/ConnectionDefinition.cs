@@ -11,7 +11,6 @@ namespace Apps.GoogleSheets.Connections
             {
                 Name = "Oauth",
                 AuthenticationType = ConnectionAuthenticationType.OAuth2,
-                ConnectionUsage = ConnectionUsage.Actions,
                 ConnectionProperties = new List<ConnectionProperty>()
             }
             //new ConnectionPropertyGroup
@@ -31,7 +30,6 @@ namespace Apps.GoogleSheets.Connections
         {
             var accessToken = values.First(v => v.Key == "access_token");
             yield return new AuthenticationCredentialsProvider(
-                AuthenticationCredentialsRequestLocation.None,
                 "Authorization",
                 accessToken.Value
             );

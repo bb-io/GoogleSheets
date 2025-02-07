@@ -6,7 +6,7 @@ namespace Apps.GoogleSheets.Models.Requests
     {
 
         [Display("Row", Description = "Row number (e.g. \"1\", \"2\", \"3\")")]
-        public int RowIndex { get; set; }
+        public string RowIndex { get; set; }
 
         [Display("Start column address", Description = "Column address (e.g. \"A\", \"B\", \"C\")")]
         public string Column1 { get; set; }
