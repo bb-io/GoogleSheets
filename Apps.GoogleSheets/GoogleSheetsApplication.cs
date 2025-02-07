@@ -25,12 +25,6 @@ namespace Apps.GoogleSheets
             _typesInstances = CreateTypesInstances();
         }
 
-        public string Name
-        {
-            get => "Google Sheets";
-            set { }
-        }
-
         public T GetInstance<T>()
         {
             if (!_typesInstances.TryGetValue(typeof(T), out var value))

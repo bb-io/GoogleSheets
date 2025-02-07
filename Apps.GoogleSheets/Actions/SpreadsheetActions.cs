@@ -14,6 +14,7 @@ using Apps.GoogleSheets.Models.Responses;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Converters;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -35,8 +36,9 @@ namespace Apps.GoogleSheets.Actions
             [ActionParameter] GetCellRequest input)
         {
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+
             var sheetValues = await GetSheetValues(client,
-                spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column}{input.Row}", $"{input.Column}{input.Row}");
+                spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column}{ParseRow(input.Row)}", $"{input.Column}{ParseRow(input.Row)}");
             return new CellDto { Value = sheetValues[0][0]?.ToString() ?? string.Empty };
         }
 
@@ -49,9 +51,9 @@ namespace Apps.GoogleSheets.Actions
         {
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
-            await ExpandRowLimits(cellRequest.Row, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, client);
+            await ExpandRowLimits(ParseRow(cellRequest.Row), spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, client);
 
-            var range = $"{sheetRequest.SheetName}!{cellRequest.Column}{cellRequest.Row}";
+            var range = $"{sheetRequest.SheetName}!{cellRequest.Column}{ParseRow(cellRequest.Row)}";
 
             var valueRange = new ValueRange { Values = new List<IList<object>> { new List<object> { input.Value } } };
             var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
@@ -69,7 +71,7 @@ namespace Apps.GoogleSheets.Actions
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
             var result = await GetSheetValues(client,
-                spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column1}{input.RowIndex}", $"{input.Column2}{input.RowIndex}");
+                spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column1}{ParseRow(input.RowIndex)}", $"{input.Column2}{ParseRow(input.RowIndex)}");
 
             return new RowDto { Row = result.First().Select(x => x?.ToString() ?? string.Empty).ToList() };
         }
@@ -180,7 +182,7 @@ namespace Apps.GoogleSheets.Actions
         {
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
             var result = await GetSheetValues(client,
-                spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{columnRequest.Column}{columnRequest.StartRow}", $"{columnRequest.Column}{columnRequest.EndRow}");
+                spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{columnRequest.Column}{ParseRow(columnRequest.StartRow)}", $"{columnRequest.Column}{ParseRow(columnRequest.EndRow)}");
             return new ColumnDto() { Column = result.Select(x => x.First().ToString() ?? string.Empty).ToList() };
         }
 
@@ -608,6 +610,16 @@ namespace Apps.GoogleSheets.Actions
             }
         }
 
+        private static int ParseRow(string row)
+        {
+            if (int.TryParse(row, out int value))
+            {
+                return value;
+            }
+            throw new PluginMisconfigurationException("The row value should be a number, e.g. 1");
+        }
+
         #endregion
     }
+
 }
