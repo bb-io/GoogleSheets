@@ -59,7 +59,8 @@ namespace Apps.GoogleSheets.Actions
             var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
             updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
             updateRequest.IncludeValuesInResponse = true;
-            return new CellDto { Value = (await updateRequest.ExecuteAsync()).UpdatedData.Values[0][0].ToString() };
+            var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await updateRequest.ExecuteAsync());
+            return new CellDto { Value = result?.UpdatedData.Values[0][0].ToString() };
         }
 
         [Action("Get sheet row", Description = "Get sheet row by address")]
@@ -107,7 +108,7 @@ namespace Apps.GoogleSheets.Actions
             var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
             updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
             updateRequest.IncludeValuesInResponse = true;
-            var result = await updateRequest.ExecuteAsync();
+            var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await updateRequest.ExecuteAsync());
             return new RowDto() { Row = result.UpdatedData.Values[0].Select(x => x.ToString()).ToList() };
         }
 
@@ -117,7 +118,7 @@ namespace Apps.GoogleSheets.Actions
             [ActionParameter] CreateWorksheetRequest createWorksheetRequest)
         {
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-            var response = await client.Spreadsheets.BatchUpdate(
+            var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Spreadsheets.BatchUpdate(
                 new BatchUpdateSpreadsheetRequest
                 {
                     Requests = new List<Request>
@@ -130,7 +131,7 @@ namespace Apps.GoogleSheets.Actions
                             }
                         }
                     }
-                }, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+                }, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
             
             return new(response.Replies[0].AddSheet.Properties);
         }
@@ -205,7 +206,7 @@ namespace Apps.GoogleSheets.Actions
             var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
             updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
             updateRequest.IncludeValuesInResponse = true;
-            var result = await updateRequest.ExecuteAsync();
+            var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await updateRequest.ExecuteAsync());
             return new ColumnDto() { Column = result.UpdatedData.Values[0].Select(x => x.ToString()).ToList() };
         }
 
@@ -249,8 +250,8 @@ namespace Apps.GoogleSheets.Actions
         {
             var client = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
 
-            var fileStream = await client.Files
-                .Export(spreadsheetFileRequest.SpreadSheetId, MediaTypeNames.Application.Pdf).ExecuteAsStreamAsync();
+            var fileStream = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files
+                .Export(spreadsheetFileRequest.SpreadSheetId, MediaTypeNames.Application.Pdf).ExecuteAsStreamAsync());
             return new()
             {
                 File = await _fileManagementClient.UploadAsync(fileStream, MediaTypeNames.Application.Pdf,
@@ -566,7 +567,7 @@ namespace Apps.GoogleSheets.Actions
             var range = $"{sheetName}!{cellA}:{cellB}";
             var request = client.Spreadsheets.Values.Get(sheetId, range);
 
-            var response = await request.ExecuteAsync();
+            var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await request.ExecuteAsync());
             return response.Values;
         }
         private List<int> GetIdsRange(int start, int end)
@@ -606,7 +607,7 @@ namespace Apps.GoogleSheets.Actions
                         }
                     }
                 }, spreadSheetId);
-                await expandRequest.ExecuteAsync();
+                await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await expandRequest.ExecuteAsync());
             }
         }
 
@@ -617,6 +618,33 @@ namespace Apps.GoogleSheets.Actions
                 return value;
             }
             throw new PluginMisconfigurationException("The row value should be a number, e.g. 1");
+        }
+
+        public static class ErrorHandler
+        {
+            public static async Task ExecuteWithErrorHandlingAsync(Func<Task> action)
+            {
+                try
+                {
+                    await action();
+                }
+                catch (Exception ex)
+                {
+                    throw new PluginApplicationException(ex.Message);
+                }
+            }
+
+            public static async Task<T> ExecuteWithErrorHandlingAsync<T>(Func<Task<T>> action)
+            {
+                try
+                {
+                    return await action();
+                }
+                catch (Exception ex)
+                {
+                    throw new PluginApplicationException(ex.Message);
+                }
+            }
         }
 
         #endregion
