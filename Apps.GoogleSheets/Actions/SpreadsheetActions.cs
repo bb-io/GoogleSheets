@@ -15,6 +15,7 @@ using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Converters;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
 using Blackbird.Applications.Sdk.Common.Exceptions;
+using Blackbird.Applications.Sdk.Common.Authentication;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -65,6 +66,12 @@ namespace Apps.GoogleSheets.Actions
                 throw new PluginApplicationException("No updated data was returned from the API. Please check your input and try again");
             }
             return new CellDto { Value = result?.UpdatedData.Values[0][0].ToString() };
+        }
+
+        [Action("DEBUG: Get auth data", Description = "Can be used only for debugging purposes.")]
+        public List<AuthenticationCredentialsProvider> GetAuthenticationCredentialsProviders()
+        {
+            return InvocationContext.AuthenticationCredentialsProviders.ToList();
         }
 
         [Action("Get sheet row", Description = "Get sheet row by address")]
