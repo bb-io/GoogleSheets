@@ -593,7 +593,7 @@ namespace Apps.GoogleSheets.Actions
             var request = client.Spreadsheets.Values.Get(sheetId, range);
 
             var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await request.ExecuteAsync());
-            return response.Values;
+            return response?.Values ?? null;
         }
         private List<int> GetIdsRange(int start, int end)
         {
