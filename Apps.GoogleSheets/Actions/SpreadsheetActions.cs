@@ -161,9 +161,23 @@ namespace Apps.GoogleSheets.Actions
             [ActionParameter] SheetRequest sheetRequest,
             [ActionParameter] RangeRequest rangeRequest)
         {
+            if (string.IsNullOrWhiteSpace(spreadsheetFileRequest.SpreadSheetId))
+                throw new PluginMisconfigurationException("Spreadsheet ID can not be null or empty. Please check your input and try again");
+            if (string.IsNullOrWhiteSpace(sheetRequest.SheetName))
+                throw new PluginMisconfigurationException("Spreadsheet name can not be null or empty. Please check your input and try again");
+            if (string.IsNullOrWhiteSpace(rangeRequest.StartCell))
+                throw new PluginMisconfigurationException("Start cell can not be null or empty. Please check your input and try again");
+            if (string.IsNullOrWhiteSpace(rangeRequest.EndCell))
+                throw new PluginMisconfigurationException("End cell can not be null or empty. Please check your input and try again");
+
+
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
             var result = await GetSheetValues(client,
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
+            if (result == null)
+            {
+                throw new PluginApplicationException("No values were returned from the Google Sheets API. Please try again");
+            }
             var (startColumn, startRow) = rangeRequest.StartCell.ToExcelColumnAndRow();
             var (endColumn, endRow) = rangeRequest.EndCell.ToExcelColumnAndRow();
             var rangeIDs = GetIdsRange(startRow, endRow);
