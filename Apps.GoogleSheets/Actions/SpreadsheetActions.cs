@@ -15,6 +15,7 @@ using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Converters;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
 using Blackbird.Applications.Sdk.Common.Exceptions;
+using Blackbird.Applications.Sdk.Common.Authentication;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -60,7 +61,17 @@ namespace Apps.GoogleSheets.Actions
             updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
             updateRequest.IncludeValuesInResponse = true;
             var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await updateRequest.ExecuteAsync());
+            if (result?.UpdatedData?.Values == null || result.UpdatedData.Values.Count == 0 || result.UpdatedData.Values[0].Count == 0)
+            {
+                throw new PluginApplicationException("No updated data was returned from the API. Please check your input and try again");
+            }
             return new CellDto { Value = result?.UpdatedData.Values[0][0].ToString() };
+        }
+
+        [Action("DEBUG: Get auth data", Description = "Can be used only for debugging purposes.")]
+        public List<AuthenticationCredentialsProvider> GetAuthenticationCredentialsProviders()
+        {
+            return InvocationContext.AuthenticationCredentialsProviders.ToList();
         }
 
         [Action("Get sheet row", Description = "Get sheet row by address")]
