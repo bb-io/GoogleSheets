@@ -60,6 +60,10 @@ namespace Apps.GoogleSheets.Actions
             updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
             updateRequest.IncludeValuesInResponse = true;
             var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await updateRequest.ExecuteAsync());
+            if (result?.UpdatedData?.Values == null || result.UpdatedData.Values.Count == 0 || result.UpdatedData.Values[0].Count == 0)
+            {
+                throw new PluginApplicationException("No updated data was returned from the API. Please check your input and try again");
+            }
             return new CellDto { Value = result?.UpdatedData.Values[0][0].ToString() };
         }
 
