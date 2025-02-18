@@ -40,6 +40,10 @@ namespace Apps.GoogleSheets.Actions
 
             var sheetValues = await GetSheetValues(client,
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column}{ParseRow(input.Row)}", $"{input.Column}{ParseRow(input.Row)}");
+            if (sheetValues is null || String.IsNullOrEmpty(sheetValues[0][0]?.ToString())) 
+            {
+                return new CellDto { Value = string.Empty };
+            }
             return new CellDto { Value = sheetValues[0][0]?.ToString() ?? string.Empty };
         }
 
@@ -593,7 +597,11 @@ namespace Apps.GoogleSheets.Actions
             var request = client.Spreadsheets.Values.Get(sheetId, range);
 
             var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await request.ExecuteAsync());
-            return response?.Values ?? null;
+            if (response is null || response?.Values?.Count == 0) 
+            {
+                return null;
+            }
+            return response?.Values;
         }
         private List<int> GetIdsRange(int start, int end)
         {
