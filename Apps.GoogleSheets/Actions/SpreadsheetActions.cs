@@ -16,6 +16,7 @@ using Blackbird.Applications.Sdk.Glossaries.Utils.Converters;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Authentication;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -88,6 +89,8 @@ namespace Apps.GoogleSheets.Actions
 
             var result = await GetSheetValues(client,
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column1}{ParseRow(input.RowIndex)}", $"{input.Column2}{ParseRow(input.RowIndex)}");
+            if (result is null )
+            { return new RowDto { Row = new List<string>() }; }
 
             return new RowDto { Row = result.FirstOrDefault()?.Select(x => x?.ToString() ?? string.Empty)?.ToList() ?? new List<string>() };
         }
@@ -191,7 +194,7 @@ namespace Apps.GoogleSheets.Actions
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
             if (result == null)
             {
-                throw new PluginApplicationException("No values were returned from the Google Sheets API. Please try again");
+                return new RowsDto { Rows = new List<_row>(), RowsCount = 0};
             }
             var (startColumn, startRow) = rangeRequest.StartCell.ToExcelColumnAndRow();
             var (endColumn, endRow) = rangeRequest.EndCell.ToExcelColumnAndRow();
@@ -213,6 +216,10 @@ namespace Apps.GoogleSheets.Actions
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
             var result = await GetSheetValues(client,
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{columnRequest.Column}{ParseRow(columnRequest.StartRow)}", $"{columnRequest.Column}{ParseRow(columnRequest.EndRow)}");
+            if (result is null)
+            {
+                return new ColumnDto { Column = new List<string>() };            
+            }
             return new ColumnDto() { Column = result.Select(x => x.FirstOrDefault()?.ToString() ?? string.Empty).ToList() };
         }
 
@@ -250,6 +257,7 @@ namespace Apps.GoogleSheets.Actions
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
             var result = await GetSheetValues(client,
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column}1", $"{input.Column}{maxRowIndex}");
+            if (result is null) { return null; }
             var columnValues = result.Select(x => x.FirstOrDefault()?.ToString() ?? string.Empty).ToList();
             var index = columnValues.IndexOf(input.Value);
             index = index + 1;
