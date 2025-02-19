@@ -16,7 +16,6 @@ using Blackbird.Applications.Sdk.Glossaries.Utils.Converters;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Authentication;
-using System.Reflection.Metadata.Ecma335;
 
 namespace Apps.GoogleSheets.Actions
 {
