@@ -19,15 +19,9 @@ namespace Tests.GoogleSheets
         {
             var spreadsheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc";
             var sheetName = "Стальна шерсть";
-            int currentRowCount = 5;
+            int currentRowCount = 6;
 
             var actions = new GoogleSheetsPollingList(InvocationContext);
-
-            var input = new NewRowAddedRequest
-            {
-                SpreadsheetId = spreadsheetId,
-                SheetName = sheetName
-            };
 
             var spreadId = new SpreadsheetFileRequest
             {

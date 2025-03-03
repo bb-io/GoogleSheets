@@ -21,33 +21,31 @@ namespace Apps.GoogleSheets.Polling
              [PollingEventParameter] SpreadsheetFileRequest spreadsheetFileRequest,
              [PollingEventParameter] SheetRequest sheetRequest)
         {
-            if (request.Memory == null)
-            {
-                request.Memory = new NewRowAddedMemory
-                {
-                    LastRowCount = 0,
-                    LastPollingTime = DateTime.UtcNow,
-                    Triggered = false
-                };
-            }
-
-            var memory = request.Memory;
-
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
             var valuesRequest = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
             var valuesResponse = await valuesRequest.ExecuteAsync();
 
-            int currentRowCount = 0;
-            if (valuesResponse.Values != null)
+            int currentRowCount = (valuesResponse.Values != null) ? valuesResponse.Values.Count : 0;
+
+            if (request.Memory == null)
             {
-                currentRowCount = valuesResponse.Values.Count;
-            }
-            else
-            {
-                currentRowCount = 0;
+                request.Memory = new NewRowAddedMemory
+                {
+                    LastRowCount = currentRowCount,
+                    LastPollingTime = DateTime.UtcNow,
+                    Triggered = false
+                };
+
+                return new PollingEventResponse<NewRowAddedMemory, IEnumerable<NewRowResult>>
+                {
+                    FlyBird = false,
+                    Memory = request.Memory,
+                    Result = null
+                };
             }
 
+            var memory = request.Memory;
             var newRowsList = new List<NewRow>();
 
             if (valuesResponse.Values != null && currentRowCount > memory.LastRowCount)
@@ -78,34 +76,24 @@ namespace Apps.GoogleSheets.Polling
 
             memory.LastRowCount = currentRowCount;
             memory.LastPollingTime = DateTime.UtcNow;
-            if (newRowsList.Any())
-            {
-                memory.Triggered = true;
-            }
-            else
-            {
-                memory.Triggered = false;
-            }
+            memory.Triggered = newRowsList.Any();
 
             var result = new List<NewRowResult>();
             if (newRowsList.Any())
             {
-                var newRowResult = new NewRowResult();
-                newRowResult.NewRows = newRowsList;
+                var newRowResult = new NewRowResult
+                {
+                    NewRows = newRowsList
+                };
                 result.Add(newRowResult);
             }
 
-            var response = new PollingEventResponse<NewRowAddedMemory, IEnumerable<NewRowResult>>();
-            if (newRowsList.Any())
+            var response = new PollingEventResponse<NewRowAddedMemory, IEnumerable<NewRowResult>>
             {
-                response.FlyBird = true;
-            }
-            else
-            {
-                response.FlyBird = false;
-            }
-            response.Memory = memory;
-            response.Result = result;
+                FlyBird = newRowsList.Any(),
+                Memory = memory,
+                Result = result
+            };
             return response;
         }
     }
