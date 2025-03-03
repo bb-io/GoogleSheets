@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Apps.GoogleSheets.Models.Requests;
 using Apps.GoogleSheets.Polling.Models;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Invocation;
@@ -16,7 +17,9 @@ namespace Apps.GoogleSheets.Polling
     {
         [PollingEvent("On new rows added", "Triggered when new rows are added to the sheet")]
         public async Task<PollingEventResponse<NewRowAddedMemory, IEnumerable<NewRowResult>>> OnNewRowsAdded(
-            PollingEventRequest<NewRowAddedMemory> request, [PollingEventParameter] NewRowAddedRequest input)
+             PollingEventRequest<NewRowAddedMemory> request,
+             [PollingEventParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+             [PollingEventParameter] SheetRequest sheetRequest)
         {
             if (request.Memory == null)
             {
@@ -32,7 +35,7 @@ namespace Apps.GoogleSheets.Polling
 
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
-            var valuesRequest = client.Spreadsheets.Values.Get(input.SpreadsheetId, input.SheetName);
+            var valuesRequest = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
             var valuesResponse = await valuesRequest.ExecuteAsync();
 
             int currentRowCount = 0;
@@ -104,7 +107,6 @@ namespace Apps.GoogleSheets.Polling
             response.Memory = memory;
             response.Result = result;
             return response;
-
         }
     }
 }

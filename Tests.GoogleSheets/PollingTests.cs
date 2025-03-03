@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Apps.GoogleSheets.Models.Requests;
 using Apps.GoogleSheets.Polling;
 using Apps.GoogleSheets.Polling.Models;
 using Blackbird.Applications.Sdk.Common.Polling;
@@ -28,6 +29,15 @@ namespace Tests.GoogleSheets
                 SheetName = sheetName
             };
 
+            var spreadId = new SpreadsheetFileRequest
+            {
+                SpreadSheetId = spreadsheetId
+            };
+            var spreadName = new SheetRequest
+            {
+                SheetName = sheetName
+            };
+
             var pollingRequest = new PollingEventRequest<NewRowAddedMemory>
             {
                 Memory = new NewRowAddedMemory
@@ -38,7 +48,7 @@ namespace Tests.GoogleSheets
                 }
             };
 
-            var response = await actions.OnNewRowsAdded(pollingRequest, input);
+            var response = await actions.OnNewRowsAdded(pollingRequest, spreadId, spreadName);
 
             if (response.Result != null)
             {
