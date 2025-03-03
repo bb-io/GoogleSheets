@@ -28,14 +28,15 @@ namespace Apps.GoogleSheets.Polling
 
             int currentRowCount = (valuesResponse.Values != null) ? valuesResponse.Values.Count : 0;
 
-            if (request.Memory == null)
+            if (request.Memory == null || request.Memory.LastRowCount == 0)
             {
-                request.Memory = new NewRowAddedMemory
+                if (request.Memory == null)
                 {
-                    LastRowCount = currentRowCount,
-                    LastPollingTime = DateTime.UtcNow,
-                    Triggered = false
-                };
+                    request.Memory = new NewRowAddedMemory();
+                }
+                request.Memory.LastRowCount = currentRowCount;
+                request.Memory.LastPollingTime = DateTime.UtcNow;
+                request.Memory.Triggered = false;
 
                 return new PollingEventResponse<NewRowAddedMemory, IEnumerable<NewRowResult>>
                 {
