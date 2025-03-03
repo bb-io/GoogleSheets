@@ -27,16 +27,14 @@ namespace Apps.GoogleSheets.Polling
             var valuesResponse = await valuesRequest.ExecuteAsync();
 
             int currentRowCount = (valuesResponse.Values != null) ? valuesResponse.Values.Count : 0;
-
-            if (request.Memory == null || request.Memory.LastRowCount == 0)
+            if (request.Memory == null)
             {
-                if (request.Memory == null)
+                request.Memory = new NewRowAddedMemory
                 {
-                    request.Memory = new NewRowAddedMemory();
-                }
-                request.Memory.LastRowCount = currentRowCount;
-                request.Memory.LastPollingTime = DateTime.UtcNow;
-                request.Memory.Triggered = false;
+                    LastRowCount = currentRowCount,
+                    LastPollingTime = DateTime.UtcNow,
+                    Triggered = false
+                };
 
                 return new PollingEventResponse<NewRowAddedMemory, IEnumerable<NewRowResult>>
                 {
@@ -56,14 +54,7 @@ namespace Apps.GoogleSheets.Polling
                     var rowValues = new List<string>();
                     foreach (var cell in valuesResponse.Values[i])
                     {
-                        if (cell != null)
-                        {
-                            rowValues.Add(cell.ToString());
-                        }
-                        else
-                        {
-                            rowValues.Add(string.Empty);
-                        }
+                        rowValues.Add(cell != null ? cell.ToString() : string.Empty);
                     }
 
                     var newRow = new NewRow
