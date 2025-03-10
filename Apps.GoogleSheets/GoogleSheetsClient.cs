@@ -23,6 +23,9 @@ namespace Apps.GoogleSheets
             };
         }
 
-        public GoogleSheetsClient(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders) : base(GetInitializer(authenticationCredentialsProviders)) { }
+        public GoogleSheetsClient(IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders) : base(GetInitializer(authenticationCredentialsProviders)) 
+        {
+            this.HttpClient.Timeout = TimeSpan.FromSeconds(300);
+        }
     }
 }
