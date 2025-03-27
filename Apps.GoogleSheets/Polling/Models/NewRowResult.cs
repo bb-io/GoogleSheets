@@ -9,7 +9,7 @@ namespace Apps.GoogleSheets.Polling.Models
 {
     public class NewRowResult
     {
-        [Display("Ne rows calues")]
+        [Display("New rows")]
         public IEnumerable<NewRow> NewRows { get; set; }
     }
 
