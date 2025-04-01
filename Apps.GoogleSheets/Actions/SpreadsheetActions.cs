@@ -16,6 +16,9 @@ using Blackbird.Applications.Sdk.Glossaries.Utils.Converters;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Authentication;
+using CsvHelper;
+using System.Globalization;
+using DocumentFormat.OpenXml.Bibliography;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -269,15 +272,23 @@ namespace Apps.GoogleSheets.Actions
             [ActionParameter] SheetRequest sheetRequest)
         {
             var rows = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
-            var csv = new StringBuilder();
-            rows.Rows.ForEach(row =>
-            {
-                csv.AppendLine(string.Join(",", row.Values));
-            });
 
-            using var stream = new MemoryStream(Encoding.ASCII.GetBytes(csv.ToString()));
-            var csvFile = await _fileManagementClient.UploadAsync(stream, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
-            return new FileResponse() { File = csvFile };
+            using (var writer = new StringWriter())
+            using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+            {
+                foreach (var row in rows.Rows)
+                {
+                    foreach (var value in row.Values)
+                    {
+                        csv.WriteField(value);
+                    }
+                    csv.NextRecord();
+                }
+
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(writer.ToString()));
+                var csvFile = await _fileManagementClient.UploadAsync(stream, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
+                return new FileResponse() { File = csvFile };
+            }
         }
         
         [Action("Download spreadsheet as PDF file", Description = "Download specific spreadsheet in PDF")]
