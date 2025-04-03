@@ -19,6 +19,7 @@ using Blackbird.Applications.Sdk.Common.Authentication;
 using CsvHelper;
 using System.Globalization;
 using DocumentFormat.OpenXml.Bibliography;
+using CsvHelper.Configuration;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -269,20 +270,48 @@ namespace Apps.GoogleSheets.Actions
         [Action("Download sheet CSV file", Description = "Download CSV file")]
         public async Task<FileResponse> DownloadCSV(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
-            [ActionParameter] SheetRequest sheetRequest)
+            [ActionParameter] SheetRequest sheetRequest,
+            [ActionParameter] OptionalRangeRequest rangeRequest,
+            [ActionParameter] CsvOptions csvOptions
+            )
         {
-            var rows = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
+            if (string.IsNullOrWhiteSpace(spreadsheetFileRequest.SpreadSheetId))
+                throw new PluginMisconfigurationException("Spreadsheet ID can not be null or empty. Please check your input and try again");
+            if (string.IsNullOrWhiteSpace(sheetRequest.SheetName))
+                throw new PluginMisconfigurationException("Spreadsheet name can not be null or empty. Please check your input and try again");
+
+            List<List<string>> rows = new List<List<string>>();
+            if (string.IsNullOrWhiteSpace(rangeRequest.StartCell) && string.IsNullOrWhiteSpace(rangeRequest.EndCell))
+            {
+                var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+                var result = await GetSheetValues(client,
+                    spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
+                if (result != null)
+                {
+                    var (startColumn, startRow) = rangeRequest.StartCell.ToExcelColumnAndRow();
+                    var (endColumn, endRow) = rangeRequest.EndCell.ToExcelColumnAndRow();
+                    var rangeIDs = GetIdsRange(startRow, endRow);
+                    rows = result.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList();
+                }
+            } else
+            {
+                rows = (await GetUsedRange(spreadsheetFileRequest, sheetRequest)).Rows.Select(x => x.Values).ToList();
+            }
 
             using (var writer = new StringWriter())
-            using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+            using (var csv = new CsvWriter(writer, CreateConfiguration(csvOptions)))
             {
-                foreach (var row in rows.Rows)
+                for (int i = 0; i < rows.Count; i++)
                 {
-                    foreach (var value in row.Values)
+                    foreach (var field in rows[i])
                     {
-                        csv.WriteField(value);
+                        csv.WriteField(field);
                     }
-                    csv.NextRecord();
+
+                    if (i < rows.Count - 1)
+                    {
+                        csv.NextRecord();
+                    }
                 }
 
                 using var stream = new MemoryStream(Encoding.UTF8.GetBytes(writer.ToString()));
@@ -290,7 +319,19 @@ namespace Apps.GoogleSheets.Actions
                 return new FileResponse() { File = csvFile };
             }
         }
-        
+
+        private CsvConfiguration CreateConfiguration(CsvOptions csvOptions)
+        {
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture);
+            if (csvOptions.IgnoreBlankLines.HasValue) config.IgnoreBlankLines = csvOptions.IgnoreBlankLines.Value;
+            if (csvOptions.NewLine is not null) config.NewLine = csvOptions.NewLine;
+            if (csvOptions.Delimiter is not null) config.Delimiter = csvOptions.Delimiter;
+            if (csvOptions.Comment is not null && csvOptions.Comment.Length > 1) config.Comment = csvOptions.Comment[0];
+            if (csvOptions.Escape is not null && csvOptions.Escape.Length > 1) config.Escape = csvOptions.Escape[0];
+            if (csvOptions.Quote is not null && csvOptions.Quote.Length > 1) config.Quote = csvOptions.Quote[0];
+            return config;
+        }
+
         [Action("Download spreadsheet as PDF file", Description = "Download specific spreadsheet in PDF")]
         public async Task<FileResponse> DownloadSpreadsheetAsPdf(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest)
