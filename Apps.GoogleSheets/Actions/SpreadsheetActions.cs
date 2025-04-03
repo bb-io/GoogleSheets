@@ -281,16 +281,13 @@ namespace Apps.GoogleSheets.Actions
                 throw new PluginMisconfigurationException("Spreadsheet name can not be null or empty. Please check your input and try again");
 
             List<List<string>> rows = new List<List<string>>();
-            if (string.IsNullOrWhiteSpace(rangeRequest.StartCell) && string.IsNullOrWhiteSpace(rangeRequest.EndCell))
+            if (!string.IsNullOrWhiteSpace(rangeRequest.StartCell) && !string.IsNullOrWhiteSpace(rangeRequest.EndCell))
             {
                 var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
                 var result = await GetSheetValues(client,
                     spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
                 if (result != null)
                 {
-                    var (startColumn, startRow) = rangeRequest.StartCell.ToExcelColumnAndRow();
-                    var (endColumn, endRow) = rangeRequest.EndCell.ToExcelColumnAndRow();
-                    var rangeIDs = GetIdsRange(startRow, endRow);
                     rows = result.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList();
                 }
             } else
@@ -298,7 +295,18 @@ namespace Apps.GoogleSheets.Actions
                 rows = (await GetUsedRange(spreadsheetFileRequest, sheetRequest)).Rows.Select(x => x.Values).ToList();
             }
 
-            using (var writer = new StringWriter())
+            var columnCount = rows.Select(x => x.Count()).ToList().Max();
+            foreach( var row in rows)
+            {
+                var columnsToAdd = columnCount - row.Count();
+                for (int i = 0; i < columnsToAdd; i++)
+                {
+                    row.Add(string.Empty);
+                }
+            }
+
+            using var streamOut = new MemoryStream();
+            using (var writer = new StreamWriter(streamOut, leaveOpen: true))
             using (var csv = new CsvWriter(writer, CreateConfiguration(csvOptions)))
             {
                 for (int i = 0; i < rows.Count; i++)
@@ -313,11 +321,11 @@ namespace Apps.GoogleSheets.Actions
                         csv.NextRecord();
                     }
                 }
-
-                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(writer.ToString()));
-                var csvFile = await _fileManagementClient.UploadAsync(stream, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
-                return new FileResponse() { File = csvFile };
             }
+
+            streamOut.Position = 0;
+            var csvFile = await _fileManagementClient.UploadAsync(streamOut, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
+            return new FileResponse() { File = csvFile };
         }
 
         private CsvConfiguration CreateConfiguration(CsvOptions csvOptions)

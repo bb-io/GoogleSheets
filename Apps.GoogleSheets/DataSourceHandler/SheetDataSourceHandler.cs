@@ -27,7 +27,7 @@ namespace Apps.GoogleSheets.DataSourceHandler
             var sheets = new List<Sheet>();
             if (context.SearchString != null)
             {
-                sheets = spreadsheet.Sheets.Where(x => x.Properties.Title.Contains(context.SearchString)).ToList();
+                sheets = spreadsheet.Sheets.Where(x => x.Properties.Title.Contains(context.SearchString, StringComparison.InvariantCultureIgnoreCase)).ToList();
             }
             else
             {
