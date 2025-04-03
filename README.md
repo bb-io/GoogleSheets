@@ -14,7 +14,7 @@ Google Sheets is a cloud-based spreadsheet tool that enables easy collaboration 
 
 - **Add new sheet row** Adds a new row to the first empty line of the sheet
 - **Create sheet** Creates sheet
-- **Download sheet CSV file** Downloads CSV file
+- **Download sheet CSV file** Downloads a CSV file of the entire sheet. Optionally you can specify a range. Also includes optional inputs for delimiter, quotes, etc.
 - **Download spreadsheet as PDF file** Downloads specific spreadsheet in PDF
 - **Find sheet row** Providing a column address and a value, returns row number where said value is located
 - **Get column** Gets column values

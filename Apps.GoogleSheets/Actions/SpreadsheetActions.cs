@@ -19,6 +19,7 @@ using Blackbird.Applications.Sdk.Common.Authentication;
 using CsvHelper;
 using System.Globalization;
 using DocumentFormat.OpenXml.Bibliography;
+using CsvHelper.Configuration;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -269,28 +270,76 @@ namespace Apps.GoogleSheets.Actions
         [Action("Download sheet CSV file", Description = "Download CSV file")]
         public async Task<FileResponse> DownloadCSV(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
-            [ActionParameter] SheetRequest sheetRequest)
+            [ActionParameter] SheetRequest sheetRequest,
+            [ActionParameter] OptionalRangeRequest rangeRequest,
+            [ActionParameter] CsvOptions csvOptions
+            )
         {
-            var rows = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
+            if (string.IsNullOrWhiteSpace(spreadsheetFileRequest.SpreadSheetId))
+                throw new PluginMisconfigurationException("Spreadsheet ID can not be null or empty. Please check your input and try again");
+            if (string.IsNullOrWhiteSpace(sheetRequest.SheetName))
+                throw new PluginMisconfigurationException("Spreadsheet name can not be null or empty. Please check your input and try again");
 
-            using (var writer = new StringWriter())
-            using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+            List<List<string>> rows = new List<List<string>>();
+            if (!string.IsNullOrWhiteSpace(rangeRequest.StartCell) && !string.IsNullOrWhiteSpace(rangeRequest.EndCell))
             {
-                foreach (var row in rows.Rows)
+                var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+                var result = await GetSheetValues(client,
+                    spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
+                if (result != null)
                 {
-                    foreach (var value in row.Values)
-                    {
-                        csv.WriteField(value);
-                    }
-                    csv.NextRecord();
+                    rows = result.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList();
                 }
-
-                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(writer.ToString()));
-                var csvFile = await _fileManagementClient.UploadAsync(stream, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
-                return new FileResponse() { File = csvFile };
+            } else
+            {
+                rows = (await GetUsedRange(spreadsheetFileRequest, sheetRequest)).Rows.Select(x => x.Values).ToList();
             }
+
+            var columnCount = rows.Select(x => x.Count()).ToList().Max();
+            foreach( var row in rows)
+            {
+                var columnsToAdd = columnCount - row.Count();
+                for (int i = 0; i < columnsToAdd; i++)
+                {
+                    row.Add(string.Empty);
+                }
+            }
+
+            using var streamOut = new MemoryStream();
+            using (var writer = new StreamWriter(streamOut, leaveOpen: true))
+            using (var csv = new CsvWriter(writer, CreateConfiguration(csvOptions)))
+            {
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    foreach (var field in rows[i])
+                    {
+                        csv.WriteField(field);
+                    }
+
+                    if (i < rows.Count - 1)
+                    {
+                        csv.NextRecord();
+                    }
+                }
+            }
+
+            streamOut.Position = 0;
+            var csvFile = await _fileManagementClient.UploadAsync(streamOut, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
+            return new FileResponse() { File = csvFile };
         }
-        
+
+        private CsvConfiguration CreateConfiguration(CsvOptions csvOptions)
+        {
+            var config = new CsvConfiguration(CultureInfo.InvariantCulture);
+            if (csvOptions.IgnoreBlankLines.HasValue) config.IgnoreBlankLines = csvOptions.IgnoreBlankLines.Value;
+            if (csvOptions.NewLine is not null) config.NewLine = csvOptions.NewLine;
+            if (csvOptions.Delimiter is not null) config.Delimiter = csvOptions.Delimiter;
+            if (csvOptions.Comment is not null && csvOptions.Comment.Length > 1) config.Comment = csvOptions.Comment[0];
+            if (csvOptions.Escape is not null && csvOptions.Escape.Length > 1) config.Escape = csvOptions.Escape[0];
+            if (csvOptions.Quote is not null && csvOptions.Quote.Length > 1) config.Quote = csvOptions.Quote[0];
+            return config;
+        }
+
         [Action("Download spreadsheet as PDF file", Description = "Download specific spreadsheet in PDF")]
         public async Task<FileResponse> DownloadSpreadsheetAsPdf(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest)
