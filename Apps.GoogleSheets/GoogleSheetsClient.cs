@@ -1,4 +1,5 @@
-﻿using Blackbird.Applications.Sdk.Common.Authentication;
+﻿using Apps.GoogleSheets.Extensions.RateLimit;
+using Blackbird.Applications.Sdk.Common.Authentication;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Sheets.v4;
 
@@ -15,11 +16,12 @@ namespace Apps.GoogleSheets
             //                                      .UnderlyingCredential as ServiceAccountCredential;
             var accessToken = authenticationCredentialsProviders.First(p => p.KeyName == "Authorization").Value;
             var credentials = GoogleCredential.FromAccessToken(accessToken);
-            
-            return new()
+
+            return new Initializer
             {
                 HttpClientInitializer = credentials,
-                ApplicationName = "Blackbird"
+                ApplicationName = "Blackbird",
+                HttpClientFactory = new RateLimitedHttpClientFactory()
             };
         }
 

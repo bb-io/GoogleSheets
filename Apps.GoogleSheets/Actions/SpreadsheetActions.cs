@@ -104,6 +104,11 @@ namespace Apps.GoogleSheets.Actions
             [ActionParameter] SheetRequest sheetRequest,
             [ActionParameter] InsertRowRequest insertRowRequest)
         {
+            if (insertRowRequest.Row == null || !insertRowRequest.Row.Any())
+            {
+                throw new PluginMisconfigurationException("The row cannot be null or empty. Please check your input and try again");
+            }
+
             var range = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
             int newRowIndex;
             if (range != null && range?.Rows != null ) { newRowIndex = range.Rows.Count + 1; }

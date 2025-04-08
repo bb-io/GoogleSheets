@@ -12,11 +12,21 @@ namespace Tests.GoogleSheets
         {
             var action = new SpreadsheetActions(InvocationContext, FileManager);
 
-            var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId= "" };
-            var spreadSheet = new SheetRequest { SheetName= "YOUR_FILE_NAME" };
-            var rangeRequest = new RangeRequest {StartCell= "A2", EndCell= "C3" };
+            var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId= "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
+            var spreadSheet = new SheetRequest { SheetName= "__" };
+            var rangeRequest = new RangeRequest {StartCell= "A1", EndCell= "C3" };
 
             var result = await action.GetRange(spreadsheetFileRequest, spreadSheet, rangeRequest);
+
+            foreach (var row in result.Rows)
+            {
+                Console.Write($"Row {row.RowId}: ");
+                foreach (var value in row.Values)
+                {
+                    Console.Write($"{value}, ");
+                }
+                Console.WriteLine();
+            }
 
             Assert.IsNotNull(result);
         }
