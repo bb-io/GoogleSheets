@@ -333,6 +333,69 @@ namespace Apps.GoogleSheets.Actions
             return new FileResponse() { File = csvFile };
         }
 
+        [Action("Import CSV", Description = "Import CSV file into Google Sheets")]
+        public async Task<SheetDto> ImportCSV(
+            [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+            [ActionParameter] SheetRequest sheetRequest,
+            [ActionParameter] FileResponse csvFile,
+            [ActionParameter] CsvOptions csvOptions)
+        {
+            var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+
+            await using var csvStream = await _fileManagementClient.DownloadAsync(csvFile.File);
+
+            await client.Spreadsheets.Values
+                .Clear(new ClearValuesRequest(), spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName)
+                .ExecuteAsync();
+
+            var rows = new List<List<string>>();
+            using (var reader = new StreamReader(csvStream, Encoding.UTF8))
+            {
+                using (var csv = new CsvReader(reader, CreateConfiguration(csvOptions)))
+                {
+                    while (await csv.ReadAsync())
+                    {
+                        var record = csv.Parser.Record;
+                        rows.Add(record.ToList());
+                    }
+                }
+            }
+
+            int maxColumns = rows.Any() ? rows.Max(r => r.Count) : 0;
+            foreach (var row in rows)
+            {
+                while (row.Count < maxColumns)
+                {
+                    row.Add(string.Empty);
+                }
+            }
+
+            int startRow = 1;
+            int startColumn = 1;
+            int endRow = rows.Count;
+            int endColumn = startColumn + maxColumns - 1;
+            var range = $"{sheetRequest.SheetName}!{startColumn.ToExcelColumnAddress()}{startRow}:{endColumn.ToExcelColumnAddress()}{endRow}";
+
+            var valueRange = new ValueRange
+            {
+                Values = rows.Select(r => (IList<object>)r.Cast<object>().ToList()).ToList()
+            };
+
+            var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
+            updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
+            updateRequest.IncludeValuesInResponse = true;
+            await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await updateRequest.ExecuteAsync());
+
+            var spreadsheet = await client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+            var sheet = spreadsheet.Sheets.FirstOrDefault(s => s.Properties.Title == sheetRequest.SheetName)?.Properties;
+            if (sheet == null)
+            {
+                throw new PluginApplicationException("Sheet not found after update");
+            }
+            return new SheetDto(sheet);
+        }
+
+
         private CsvConfiguration CreateConfiguration(CsvOptions csvOptions)
         {
             var config = new CsvConfiguration(CultureInfo.InvariantCulture);
@@ -498,6 +561,12 @@ namespace Apps.GoogleSheets.Actions
             string? sourceDescription)
         {
             var rows = await GetUsedRangeForGlossary(spreadsheetFileRequest, sheetRequest);
+
+            if (rows.Rows == null || !rows.Rows.Any())
+            {
+                throw new PluginApplicationException("The sheet rows are empty. Please check your inputs and try again");
+            }
+
             var maxLength = rows.Rows.Max(list => list.Count);
 
             var parsedGlossary = new Dictionary<string, List<string>>();
