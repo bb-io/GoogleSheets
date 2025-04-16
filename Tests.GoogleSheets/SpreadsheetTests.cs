@@ -67,10 +67,14 @@ namespace Tests.GoogleSheets
 
             var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
             var spreadSheet = new SheetRequest { SheetName = "Стальна шерсть" };
-            var rangeRequest = new OptionalRangeRequest { };
+            var rangeRequest = new OptionalRangeRequest
+            {
+              
+            };
             var fileCsv = new FileResponse { File = new Blackbird.Applications.Sdk.Common.Files.FileReference { Name= "test.csv" } };
 
-            var result = await action.ImportCSV(spreadsheetFileRequest, spreadSheet, fileCsv, new CsvOptions { });
+            //var result = await action.ImportCSVRewrite(spreadsheetFileRequest, spreadSheet, fileCsv, new CsvOptions { }, "B2");
+            var result = await action.ImportCSVAppend(spreadsheetFileRequest, spreadSheet, fileCsv, new CsvOptions { }, "B2");
 
             Assert.IsNotNull(result);
         }

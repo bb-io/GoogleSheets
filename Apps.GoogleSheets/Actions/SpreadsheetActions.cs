@@ -332,13 +332,14 @@ namespace Apps.GoogleSheets.Actions
             var csvFile = await _fileManagementClient.UploadAsync(streamOut, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
             return new FileResponse() { File = csvFile };
         }
-
-        [Action("Import CSV", Description = "Import CSV file into Google Sheets")]
-        public async Task<SheetDto> ImportCSV(
+        //
+        [Action("Import CSV(Rewrite)", Description = "Import CSV file into Google Sheets")]
+        public async Task<SheetDto> ImportCSVRewrite(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
             [ActionParameter] SheetRequest sheetRequest,
             [ActionParameter] FileResponse csvFile,
-            [ActionParameter] CsvOptions csvOptions)
+            [ActionParameter] CsvOptions csvOptions,
+            [ActionParameter] string? topLeftField = null)
         {
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
@@ -372,7 +373,23 @@ namespace Apps.GoogleSheets.Actions
 
             int startRow = 1;
             int startColumn = 1;
-            int endRow = rows.Count;
+
+            if (!string.IsNullOrEmpty(topLeftField))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(topLeftField, @"^([A-Za-z]+)(\d+)$");
+                if (match.Success)
+                {
+                    string columnPart = match.Groups[1].Value.ToUpper();
+                    startRow = int.Parse(match.Groups[2].Value);
+                    startColumn = ColumnLetterToNumber(columnPart);
+                }
+                else
+                {
+                    throw new FormatException("Invalid top left field format. Please use format like 'B3'.");
+                }
+            }
+
+            int endRow = startRow + rows.Count - 1;
             int endColumn = startColumn + maxColumns - 1;
             var range = $"{sheetRequest.SheetName}!{startColumn.ToExcelColumnAddress()}{startRow}:{endColumn.ToExcelColumnAddress()}{endRow}";
 
@@ -380,7 +397,7 @@ namespace Apps.GoogleSheets.Actions
             {
                 Values = rows.Select(r => (IList<object>)r.Cast<object>().ToList()).ToList()
             };
-
+            //look not rewrite but append
             var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
             updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
             updateRequest.IncludeValuesInResponse = true;
@@ -394,8 +411,75 @@ namespace Apps.GoogleSheets.Actions
             }
             return new SheetDto(sheet);
         }
+        //
+        [Action("Import CSV (Append)", Description = "Import CSV file into Google Sheets")]
+        public async Task<SheetDto> ImportCSVAppend(
+            [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+            [ActionParameter] SheetRequest sheetRequest,
+            [ActionParameter] FileResponse csvFile,
+            [ActionParameter] CsvOptions csvOptions,
+            [ActionParameter] string? topLeftField = null)
+        {
+            var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+
+            await using var csvStream = await _fileManagementClient.DownloadAsync(csvFile.File);
+            var rows = new List<List<string>>();
+            using (var reader = new StreamReader(csvStream, Encoding.UTF8))
+            {
+                using (var csv = new CsvReader(reader, CreateConfiguration(csvOptions)))
+                {
+                    while (await csv.ReadAsync())
+                    {
+                        var record = csv.Parser.Record;
+                        rows.Add(record.ToList());
+                    }
+                }
+            }
+
+            int maxColumns = rows.Any() ? rows.Max(r => r.Count) : 0;
+            foreach (var row in rows)
+            {
+                while (row.Count < maxColumns)
+                {
+                    row.Add(string.Empty);
+                }
+            }
+
+            string range;
+            range = sheetRequest.SheetName;
+
+            var valueRange = new ValueRange
+            {
+                Values = rows.Select(r => (IList<object>)r.Cast<object>().ToList()).ToList()
+            };
 
 
+            var appendRequest = client.Spreadsheets.Values.Append(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
+            appendRequest.ValueInputOption = AppendRequest.ValueInputOptionEnum.USERENTERED;
+            appendRequest.InsertDataOption = AppendRequest.InsertDataOptionEnum.INSERTROWS;
+            await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await appendRequest.ExecuteAsync());
+
+            var spreadsheet = await client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+            var sheet = spreadsheet.Sheets.FirstOrDefault(s => s.Properties.Title == sheetRequest.SheetName)?.Properties;
+            if (sheet == null)
+            {
+                throw new PluginApplicationException("Sheet not found after update");
+            }
+            return new SheetDto(sheet);
+        }
+        //
+
+
+        private int ColumnLetterToNumber(string column)
+        {
+            int sum = 0;
+            foreach (char c in column)
+            {
+                sum *= 26;
+                sum += (c - 'A' + 1);
+            }
+            return sum;
+        }
         private CsvConfiguration CreateConfiguration(CsvOptions csvOptions)
         {
             var config = new CsvConfiguration(CultureInfo.InvariantCulture);
