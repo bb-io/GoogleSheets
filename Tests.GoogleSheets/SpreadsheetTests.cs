@@ -73,8 +73,7 @@ namespace Tests.GoogleSheets
             };
             var fileCsv = new FileResponse { File = new Blackbird.Applications.Sdk.Common.Files.FileReference { Name= "test.csv" } };
 
-            //var result = await action.ImportCSVRewrite(spreadsheetFileRequest, spreadSheet, fileCsv, new CsvOptions { }, "B2");
-            var result = await action.ImportCSVAppend(spreadsheetFileRequest, spreadSheet, fileCsv, new CsvOptions { }, "B2");
+            var result = await action.ImportCSVAppend(spreadsheetFileRequest, spreadSheet, fileCsv, new CsvOptions { },null);
 
             Assert.IsNotNull(result);
         }

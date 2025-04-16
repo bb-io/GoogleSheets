@@ -20,6 +20,7 @@ using CsvHelper;
 using System.Globalization;
 using DocumentFormat.OpenXml.Bibliography;
 using CsvHelper.Configuration;
+using System;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -332,86 +333,15 @@ namespace Apps.GoogleSheets.Actions
             var csvFile = await _fileManagementClient.UploadAsync(streamOut, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
             return new FileResponse() { File = csvFile };
         }
-        //
-        [Action("Import CSV(Rewrite)", Description = "Import CSV file into Google Sheets")]
-        public async Task<SheetDto> ImportCSVRewrite(
-            [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
-            [ActionParameter] SheetRequest sheetRequest,
-            [ActionParameter] FileResponse csvFile,
-            [ActionParameter] CsvOptions csvOptions,
-            [ActionParameter] string? topLeftField = null)
+        private int ColumnLetterToNumber(string column)
         {
-            var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-
-            await using var csvStream = await _fileManagementClient.DownloadAsync(csvFile.File);
-
-            await client.Spreadsheets.Values
-                .Clear(new ClearValuesRequest(), spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName)
-                .ExecuteAsync();
-
-            var rows = new List<List<string>>();
-            using (var reader = new StreamReader(csvStream, Encoding.UTF8))
+            int sum = 0;
+            foreach (char c in column)
             {
-                using (var csv = new CsvReader(reader, CreateConfiguration(csvOptions)))
-                {
-                    while (await csv.ReadAsync())
-                    {
-                        var record = csv.Parser.Record;
-                        rows.Add(record.ToList());
-                    }
-                }
+                sum = sum * 26 + (c - 'A' + 1);
             }
-
-            int maxColumns = rows.Any() ? rows.Max(r => r.Count) : 0;
-            foreach (var row in rows)
-            {
-                while (row.Count < maxColumns)
-                {
-                    row.Add(string.Empty);
-                }
-            }
-
-            int startRow = 1;
-            int startColumn = 1;
-
-            if (!string.IsNullOrEmpty(topLeftField))
-            {
-                var match = System.Text.RegularExpressions.Regex.Match(topLeftField, @"^([A-Za-z]+)(\d+)$");
-                if (match.Success)
-                {
-                    string columnPart = match.Groups[1].Value.ToUpper();
-                    startRow = int.Parse(match.Groups[2].Value);
-                    startColumn = ColumnLetterToNumber(columnPart);
-                }
-                else
-                {
-                    throw new FormatException("Invalid top left field format. Please use format like 'B3'.");
-                }
-            }
-
-            int endRow = startRow + rows.Count - 1;
-            int endColumn = startColumn + maxColumns - 1;
-            var range = $"{sheetRequest.SheetName}!{startColumn.ToExcelColumnAddress()}{startRow}:{endColumn.ToExcelColumnAddress()}{endRow}";
-
-            var valueRange = new ValueRange
-            {
-                Values = rows.Select(r => (IList<object>)r.Cast<object>().ToList()).ToList()
-            };
-            //look not rewrite but append
-            var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
-            updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
-            updateRequest.IncludeValuesInResponse = true;
-            await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await updateRequest.ExecuteAsync());
-
-            var spreadsheet = await client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
-            var sheet = spreadsheet.Sheets.FirstOrDefault(s => s.Properties.Title == sheetRequest.SheetName)?.Properties;
-            if (sheet == null)
-            {
-                throw new PluginApplicationException("Sheet not found after update");
-            }
-            return new SheetDto(sheet);
+            return sum;
         }
-        //
         [Action("Import CSV (Append)", Description = "Import CSV file into Google Sheets")]
         public async Task<SheetDto> ImportCSVAppend(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
@@ -425,61 +355,70 @@ namespace Apps.GoogleSheets.Actions
             await using var csvStream = await _fileManagementClient.DownloadAsync(csvFile.File);
             var rows = new List<List<string>>();
             using (var reader = new StreamReader(csvStream, Encoding.UTF8))
+            using (var csv = new CsvReader(reader, CreateConfiguration(csvOptions)))
             {
-                using (var csv = new CsvReader(reader, CreateConfiguration(csvOptions)))
-                {
-                    while (await csv.ReadAsync())
-                    {
-                        var record = csv.Parser.Record;
-                        rows.Add(record.ToList());
-                    }
-                }
+                while (await csv.ReadAsync())
+                    rows.Add(csv.Parser.Record.ToList());
             }
 
-            int maxColumns = rows.Any() ? rows.Max(r => r.Count) : 0;
+            int maxCols = rows.Any() ? rows.Max(r => r.Count) : 0;
             foreach (var row in rows)
-            {
-                while (row.Count < maxColumns)
-                {
+                while (row.Count < maxCols)
                     row.Add(string.Empty);
-                }
+
+            int startRow, startCol;
+            if (!string.IsNullOrEmpty(topLeftField))
+            {
+                var m = Regex.Match(topLeftField, @"^([A-Za-z]+)(\d+)$");
+                if (!m.Success)
+                    throw new FormatException("Invalid format—use e.g. 'B3'.");
+                startCol = ColumnLetterToNumber(m.Groups[1].Value);
+                startRow = int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                var getReq = client.Spreadsheets.Values
+                    .Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
+                var getRes = await getReq.ExecuteAsync();
+                int existing = getRes.Values?.Count ?? 0;
+                startRow = existing + 1;
+                startCol = 1;
             }
 
-            string range;
-            range = sheetRequest.SheetName;
+            int endRow = startRow + rows.Count - 1;
+            int endColumn = startCol + maxCols - 1;
+            string range = $"{sheetRequest.SheetName}!"
+                          + $"{startCol.ToExcelColumnAddress()}{startRow}"
+                          + $":{endColumn.ToExcelColumnAddress()}{endRow}";
 
             var valueRange = new ValueRange
             {
-                Values = rows.Select(r => (IList<object>)r.Cast<object>().ToList()).ToList()
+                Values = rows
+                    .Select(r => (IList<object>)r.Cast<object>().ToList())
+                    .ToList()
             };
 
+            var updateReq = client.Spreadsheets.Values
+                .Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
+            updateReq.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
 
-            var appendRequest = client.Spreadsheets.Values.Append(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
-            appendRequest.ValueInputOption = AppendRequest.ValueInputOptionEnum.USERENTERED;
-            appendRequest.InsertDataOption = AppendRequest.InsertDataOptionEnum.INSERTROWS;
-            await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await appendRequest.ExecuteAsync());
+            await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
+                await updateReq.ExecuteAsync()
+            );
 
-            var spreadsheet = await client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
-            var sheet = spreadsheet.Sheets.FirstOrDefault(s => s.Properties.Title == sheetRequest.SheetName)?.Properties;
+            var spreadsheet = await client.Spreadsheets
+                .Get(spreadsheetFileRequest.SpreadSheetId)
+                .ExecuteAsync();
+            var sheet = spreadsheet.Sheets
+                .FirstOrDefault(s => s.Properties.Title == sheetRequest.SheetName)?
+                .Properties;
             if (sheet == null)
-            {
                 throw new PluginApplicationException("Sheet not found after update");
-            }
+
             return new SheetDto(sheet);
         }
-        //
 
-
-        private int ColumnLetterToNumber(string column)
-        {
-            int sum = 0;
-            foreach (char c in column)
-            {
-                sum *= 26;
-                sum += (c - 'A' + 1);
-            }
-            return sum;
-        }
+       
         private CsvConfiguration CreateConfiguration(CsvOptions csvOptions)
         {
             var config = new CsvConfiguration(CultureInfo.InvariantCulture);
