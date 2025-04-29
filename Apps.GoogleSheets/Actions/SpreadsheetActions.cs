@@ -20,6 +20,7 @@ using CsvHelper;
 using System.Globalization;
 using CsvHelper.Configuration;
 using DocumentFormat.OpenXml.Spreadsheet;
+using SheetProperties = Google.Apis.Sheets.v4.Data.SheetProperties;
 
 namespace Apps.GoogleSheets.Actions
 {
