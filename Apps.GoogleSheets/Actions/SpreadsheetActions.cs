@@ -267,7 +267,7 @@ namespace Apps.GoogleSheets.Actions
             return index == 0 ? null : index;
         }
 
-        [Action("Download sheet CSV file", Description = "Download CSV file")]
+        [Action("Download sheet as CSV file", Description = "Download CSV file")]
         public async Task<FileResponse> DownloadCSV(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
             [ActionParameter] SheetRequest sheetRequest,
@@ -354,9 +354,24 @@ namespace Apps.GoogleSheets.Actions
                     $"{spreadsheetFileRequest.SpreadSheetId}.pdf")
             };
         }
-        
+
+        [Action("Download spreadsheet as Excel file", Description = "Download specific spreadsheet in Excel")]
+        public async Task<FileResponse> DownloadSpreadsheetAsExcel(
+            [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest)
+        {
+            var client = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
+
+            var fileStream = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files
+                .Export(spreadsheetFileRequest.SpreadSheetId, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").ExecuteAsStreamAsync());
+            return new()
+            {
+                File = await _fileManagementClient.UploadAsync(fileStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"{spreadsheetFileRequest.SpreadSheetId}.xlsx")
+            };
+        }
+
         #region Glossaries
-        
+
         private const string Term = "Term";
         private const string Variations = "Variations";
         private const string Notes = "Notes";
