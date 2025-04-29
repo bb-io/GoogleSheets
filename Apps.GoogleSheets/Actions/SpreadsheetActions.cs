@@ -18,9 +18,7 @@ using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using CsvHelper;
 using System.Globalization;
-using DocumentFormat.OpenXml.Bibliography;
 using CsvHelper.Configuration;
-using System;
 
 namespace Apps.GoogleSheets.Actions
 {
