@@ -19,6 +19,7 @@ using Blackbird.Applications.Sdk.Common.Authentication;
 using CsvHelper;
 using System.Globalization;
 using CsvHelper.Configuration;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -448,14 +449,15 @@ namespace Apps.GoogleSheets.Actions
         public async Task<FileResponse> DownloadSpreadsheetAsExcel(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest)
         {
+            
             var client = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
-
+            var metadata = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await  client.Files.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
             var fileStream = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files
                 .Export(spreadsheetFileRequest.SpreadSheetId, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").ExecuteAsStreamAsync());
             return new()
             {
                 File = await _fileManagementClient.UploadAsync(fileStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    $"{spreadsheetFileRequest.SpreadSheetId}.xlsx")
+                    $"{metadata.Name}.xlsx")
             };
         }
 
