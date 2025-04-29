@@ -20,6 +20,7 @@ using CsvHelper;
 using System.Globalization;
 using DocumentFormat.OpenXml.Bibliography;
 using CsvHelper.Configuration;
+using System;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -104,6 +105,11 @@ namespace Apps.GoogleSheets.Actions
             [ActionParameter] SheetRequest sheetRequest,
             [ActionParameter] InsertRowRequest insertRowRequest)
         {
+            if (insertRowRequest.Row == null || !insertRowRequest.Row.Any())
+            {
+                throw new PluginMisconfigurationException("The row cannot be null or empty. Please check your input and try again");
+            }
+
             var range = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
             int newRowIndex;
             if (range != null && range?.Rows != null ) { newRowIndex = range.Rows.Count + 1; }
@@ -327,7 +333,92 @@ namespace Apps.GoogleSheets.Actions
             var csvFile = await _fileManagementClient.UploadAsync(streamOut, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
             return new FileResponse() { File = csvFile };
         }
+        private int ColumnLetterToNumber(string column)
+        {
+            int sum = 0;
+            foreach (char c in column)
+            {
+                sum = sum * 26 + (c - 'A' + 1);
+            }
+            return sum;
+        }
+        [Action("Import CSV (Append)", Description = "Import CSV file into Google Sheets")]
+        public async Task<SheetDto> ImportCSVAppend(
+            [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+            [ActionParameter] SheetRequest sheetRequest,
+            [ActionParameter] FileResponse csvFile,
+            [ActionParameter] CsvOptions csvOptions,
+            [ActionParameter] string? topLeftField = null)
+        {
+            var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
+            await using var csvStream = await _fileManagementClient.DownloadAsync(csvFile.File);
+            var rows = new List<List<string>>();
+            using (var reader = new StreamReader(csvStream, Encoding.UTF8))
+            using (var csv = new CsvReader(reader, CreateConfiguration(csvOptions)))
+            {
+                while (await csv.ReadAsync())
+                    rows.Add(csv.Parser.Record.ToList());
+            }
+
+            int maxCols = rows.Any() ? rows.Max(r => r.Count) : 0;
+            foreach (var row in rows)
+                while (row.Count < maxCols)
+                    row.Add(string.Empty);
+
+            int startRow, startCol;
+            if (!string.IsNullOrEmpty(topLeftField))
+            {
+                var m = Regex.Match(topLeftField, @"^([A-Za-z]+)(\d+)$");
+                if (!m.Success)
+                    throw new FormatException("Invalid format—use e.g. 'B3'.");
+                startCol = ColumnLetterToNumber(m.Groups[1].Value);
+                startRow = int.Parse(m.Groups[2].Value, CultureInfo.InvariantCulture);
+            }
+            else
+            {
+                var getReq = client.Spreadsheets.Values
+                    .Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
+                var getRes = await getReq.ExecuteAsync();
+                int existing = getRes.Values?.Count ?? 0;
+                startRow = existing + 1;
+                startCol = 1;
+            }
+
+            int endRow = startRow + rows.Count - 1;
+            int endColumn = startCol + maxCols - 1;
+            string range = $"{sheetRequest.SheetName}!"
+                          + $"{startCol.ToExcelColumnAddress()}{startRow}"
+                          + $":{endColumn.ToExcelColumnAddress()}{endRow}";
+
+            var valueRange = new ValueRange
+            {
+                Values = rows
+                    .Select(r => (IList<object>)r.Cast<object>().ToList())
+                    .ToList()
+            };
+
+            var updateReq = client.Spreadsheets.Values
+                .Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
+            updateReq.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
+
+            await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
+                await updateReq.ExecuteAsync()
+            );
+
+            var spreadsheet = await client.Spreadsheets
+                .Get(spreadsheetFileRequest.SpreadSheetId)
+                .ExecuteAsync();
+            var sheet = spreadsheet.Sheets
+                .FirstOrDefault(s => s.Properties.Title == sheetRequest.SheetName)?
+                .Properties;
+            if (sheet == null)
+                throw new PluginApplicationException("Sheet not found after update");
+
+            return new SheetDto(sheet);
+        }
+
+       
         private CsvConfiguration CreateConfiguration(CsvOptions csvOptions)
         {
             var config = new CsvConfiguration(CultureInfo.InvariantCulture);
@@ -508,6 +599,12 @@ namespace Apps.GoogleSheets.Actions
             string? sourceDescription)
         {
             var rows = await GetUsedRangeForGlossary(spreadsheetFileRequest, sheetRequest);
+
+            if (rows.Rows == null || !rows.Rows.Any())
+            {
+                throw new PluginApplicationException("The sheet rows are empty. Please check your inputs and try again");
+            }
+
             var maxLength = rows.Rows.Max(list => list.Count);
 
             var parsedGlossary = new Dictionary<string, List<string>>();

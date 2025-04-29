@@ -27,6 +27,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Folder Include="Input\" />
       <Folder Include="Output\" />
       <Folder Include="Output\" />
     </ItemGroup>
