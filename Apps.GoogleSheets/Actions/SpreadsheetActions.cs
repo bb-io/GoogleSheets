@@ -372,96 +372,102 @@ namespace Apps.GoogleSheets.Actions
             return config;
         }
 
-        [Action("Download spreadsheet", Description = "Download specific spreadsheet")]
-        public async Task<FileResponse> DownloadSpreadsheet(
-            [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
-            [ActionParameter] FileFormatRequest input,
-            [ActionParameter] SheetRequest sheetRequest,
-            [ActionParameter] OptionalRangeRequest rangeRequest,
-            [ActionParameter] CsvOptions csvOptions)
+        [Action("Download sheet as CSV file", Description = "Download CSV file")]
+        public async Task<FileResponse> DownloadCSV(
+             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+             [ActionParameter] SheetRequest sheetRequest,
+             [ActionParameter] OptionalRangeRequest rangeRequest,
+             [ActionParameter] CsvOptions csvOptions
+             )
         {
             if (string.IsNullOrWhiteSpace(spreadsheetFileRequest.SpreadSheetId))
                 throw new PluginMisconfigurationException("Spreadsheet ID can not be null or empty. Please check your input and try again");
             if (string.IsNullOrWhiteSpace(sheetRequest.SheetName))
                 throw new PluginMisconfigurationException("Spreadsheet name can not be null or empty. Please check your input and try again");
 
-            if (input.Format == "CSV")
+            List<List<string>> rows = new List<List<string>>();
+            if (!string.IsNullOrWhiteSpace(rangeRequest.StartCell) && !string.IsNullOrWhiteSpace(rangeRequest.EndCell))
             {
-                List<List<string>> rows = new List<List<string>>();
-                if (!string.IsNullOrWhiteSpace(rangeRequest.StartCell) && !string.IsNullOrWhiteSpace(rangeRequest.EndCell))
+                var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+                var result = await GetSheetValues(client,
+                    spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
+                if (result != null)
                 {
-                    var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-                    var result = await GetSheetValues(client,
-                        spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
-                    if (result != null)
-                    {
-                        rows = result.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList();
-                    }
+                    rows = result.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList();
                 }
-                else
-                {
-                    rows = (await GetUsedRange(spreadsheetFileRequest, sheetRequest)).Rows.Select(x => x.Values).ToList();
-                }
-
-                var columnCount = rows.Select(x => x.Count()).ToList().Max();
-                foreach (var row in rows)
-                {
-                    var columnsToAdd = columnCount - row.Count();
-                    for (int i = 0; i < columnsToAdd; i++)
-                    {
-                        row.Add(string.Empty);
-                    }
-                }
-
-                using var streamOut = new MemoryStream();
-                using (var writer = new StreamWriter(streamOut, leaveOpen: true))
-                using (var csv = new CsvWriter(writer, CreateConfiguration(csvOptions)))
-                {
-                    for (int i = 0; i < rows.Count; i++)
-                    {
-                        foreach (var field in rows[i])
-                        {
-                            csv.WriteField(field);
-                        }
-
-                        if (i < rows.Count - 1)
-                        {
-                            csv.NextRecord();
-                        }
-                    }
-                }
-                streamOut.Position = 0;
-                var csvFile = await _fileManagementClient.UploadAsync(streamOut, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
-                return new FileResponse() { File = csvFile };
             }
-            else 
+            else
             {
-                var client = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
-                if (input.Format == "PDF")
-                {
-                    var fileStream = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files
-                        .Export(spreadsheetFileRequest.SpreadSheetId, MediaTypeNames.Application.Pdf).ExecuteAsStreamAsync());
-                    return new()
-                    {
-                        File = await _fileManagementClient.UploadAsync(fileStream, MediaTypeNames.Application.Pdf,
-                            $"{sheetRequest.SheetName}.pdf")
-                    };
-                } else if (input.Format == "XLSX")
-                {
-                    var fileStream = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files
-                        .Export(spreadsheetFileRequest.SpreadSheetId, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").ExecuteAsStreamAsync());
-                    return new()
-                    {
-                        File = await _fileManagementClient.UploadAsync(fileStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            $"{sheetRequest.SheetName}.xlsx")
-                    };
-                }
-
-                throw new PluginMisconfigurationException("File format must be PDF, CSV or XLSX.");
+                rows = (await GetUsedRange(spreadsheetFileRequest, sheetRequest)).Rows.Select(x => x.Values).ToList();
             }
 
-            throw new PluginMisconfigurationException("File format must be PDF, CSV or XLSX.");
+            var columnCount = rows.Select(x => x.Count()).ToList().Max();
+            foreach (var row in rows)
+            {
+                var columnsToAdd = columnCount - row.Count();
+                for (int i = 0; i < columnsToAdd; i++)
+                {
+                    row.Add(string.Empty);
+                }
+            }
+
+            using var streamOut = new MemoryStream();
+            using (var writer = new StreamWriter(streamOut, leaveOpen: true))
+            using (var csv = new CsvWriter(writer, CreateConfiguration(csvOptions)))
+            {
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    foreach (var field in rows[i])
+                    {
+                        csv.WriteField(field);
+                    }
+
+                    if (i < rows.Count - 1)
+                    {
+                        csv.NextRecord();
+                    }
+                }
+            }
+
+            streamOut.Position = 0;
+            var csvFile = await _fileManagementClient.UploadAsync(streamOut, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
+            return new FileResponse() { File = csvFile };
         }
+
+        [Action("Download spreadsheet", Description = "Download specific spreadsheet as PDF or XLSX")]
+        public async Task<FileResponse> DownloadSpreadsheet(
+            [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+            [ActionParameter] FileFormatRequest input)
+        {
+         if (string.IsNullOrWhiteSpace(spreadsheetFileRequest.SpreadSheetId))
+        throw new PluginMisconfigurationException("Spreadsheet ID can not be null or empty. Please check your input and try again");
+           
+            
+        var client = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
+        var metadata = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
+            if (input.Format == "PDF")
+        {
+            var fileStream = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files
+                .Export(spreadsheetFileRequest.SpreadSheetId, MediaTypeNames.Application.Pdf).ExecuteAsStreamAsync());
+            return new()
+            {
+                File = await _fileManagementClient.UploadAsync(fileStream, MediaTypeNames.Application.Pdf,
+                    $"{metadata.Name}.pdf")
+            };
+        } else if (input.Format == "XLSX")
+        {
+            var fileStream = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files
+                .Export(spreadsheetFileRequest.SpreadSheetId, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").ExecuteAsStreamAsync());
+            return new()
+            {
+                File = await _fileManagementClient.UploadAsync(fileStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"{metadata.Name}.xlsx")
+            };
+        }
+
+        throw new PluginMisconfigurationException("File format must be PDF or XLSX.");
+    }
+        
 
         #region Glossaries
 

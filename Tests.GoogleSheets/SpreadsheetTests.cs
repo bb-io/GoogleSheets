@@ -41,7 +41,7 @@ namespace Tests.GoogleSheets
             var spreadSheet = new SheetRequest { SheetName = "YOUR_FILE_NAME" };
             var rangeRequest = new OptionalRangeRequest { StartCell = "B3", EndCell = "D17" };
 
-            var result = await action.DownloadSpreadsheet(spreadsheetFileRequest, new FileFormatRequest { Format= "CSV" }, spreadSheet, rangeRequest, new CsvOptions { });
+            var result = await action.DownloadCSV(spreadsheetFileRequest, spreadSheet, rangeRequest, new CsvOptions { });
 
             Assert.IsNotNull(result);
         }
@@ -55,7 +55,7 @@ namespace Tests.GoogleSheets
             var spreadSheet = new SheetRequest { SheetName = "YOUR_FILE_NAME" };
             var rangeRequest = new OptionalRangeRequest {  };
 
-            var result = await action.DownloadSpreadsheet(spreadsheetFileRequest, new FileFormatRequest { Format = "CSV" }, spreadSheet, rangeRequest, new CsvOptions { });
+            var result = await action.DownloadCSV(spreadsheetFileRequest, spreadSheet, rangeRequest, new CsvOptions { });
 
             Assert.IsNotNull(result);
         }

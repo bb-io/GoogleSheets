@@ -10,7 +10,6 @@ public class FileFormatDataSourceHandler : IStaticDataSourceItemHandler
         return new List<DataSourceItem>
     {
         new("PDF", ".pdf"),
-        new("CSV", ".csv"),
         new("XLSX", ".xlsx"),
     };
 
