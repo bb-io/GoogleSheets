@@ -239,6 +239,11 @@ namespace Apps.GoogleSheets.Actions
             [ActionParameter] SheetRequest sheetRequest,
             [ActionParameter] UpdateRowRequest updateRowRequest)
         {
+            if (updateRowRequest.Row == null || !updateRowRequest.Row.Any())
+            {
+                throw new PluginMisconfigurationException("Row data cannot be null or empty. Please check your input and try again");
+            }
+
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
             var (Column, startRow) = updateRowRequest.CellAddress.ToExcelColumnAndRow();
             var endRow = startRow + updateRowRequest.Row.Count - 1;
