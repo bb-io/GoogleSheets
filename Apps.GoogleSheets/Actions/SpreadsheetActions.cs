@@ -543,7 +543,14 @@ namespace Apps.GoogleSheets.Actions
                 Requests = new List<Request> { copyRequest }
             };
 
-            await gsheetClient.Spreadsheets.BatchUpdate(batchUpdate, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+            try 
+            {
+                await gsheetClient.Spreadsheets.BatchUpdate(batchUpdate, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+            } catch (Exception ex) 
+            {
+                throw new PluginApplicationException(ex.Message + " source " + tempSheetId + " target " + targetSheetID );
+            }
+            
 
             await driveClient.Files.Delete(tempSpreadsheetId).ExecuteAsync();
         }
