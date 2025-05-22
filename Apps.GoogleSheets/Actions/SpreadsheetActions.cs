@@ -503,7 +503,7 @@ namespace Apps.GoogleSheets.Actions
             var response = await gsheetClient.Spreadsheets.Values.Get(tempSpreadsheetId, range).ExecuteAsync();
             int rowCount = response.Values.Count;
             int colCount = response.Values.Max(row => row.Count);
-            int tempSheetId = (int)tempSheet.Properties.SheetId;
+            int tempSheetId = tempSheet.Properties.SheetId.Value;
 
             int rowIndex = 0;
             int colIndex = 0;
