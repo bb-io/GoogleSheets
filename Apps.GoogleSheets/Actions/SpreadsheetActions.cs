@@ -20,6 +20,7 @@ using CsvHelper;
 using System.Globalization;
 using CsvHelper.Configuration;
 using SheetProperties = Google.Apis.Sheets.v4.Data.SheetProperties;
+using Google.Apis.Sheets.v4;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -516,13 +517,24 @@ namespace Apps.GoogleSheets.Actions
             var targetSpreadsheet = await gsheetClient.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
             var targetSheetID = targetSpreadsheet.Sheets.First(s => s.Properties.Title == sheetRequest.SheetName)?.Properties.SheetId.Value;
 
+            var copyToRequest = new CopySheetToAnotherSpreadsheetRequest
+            {
+                DestinationSpreadsheetId = spreadsheetFileRequest.SpreadSheetId
+            };
+
+            var copyResponse = await gsheetClient.Spreadsheets.Sheets
+                .CopyTo(copyToRequest, tempSpreadsheetId, tempSheetId)
+                .ExecuteAsync();
+
+            var copiedSheetId = copyResponse.SheetId.Value;
+
             var copyRequest = new Request
             {
                 CopyPaste = new CopyPasteRequest
                 {
                     Source = new GridRange
                     {
-                        SheetId = tempSheetId,
+                        SheetId = copiedSheetId,
                         StartRowIndex = 0,
                         StartColumnIndex = 0,
                         EndRowIndex = rowCount,
