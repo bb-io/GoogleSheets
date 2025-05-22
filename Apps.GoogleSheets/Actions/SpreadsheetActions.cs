@@ -511,7 +511,7 @@ namespace Apps.GoogleSheets.Actions
 
             if (!String.IsNullOrEmpty(xlsxFile.TopLeftCell))
             {
-                (rowIndex, colIndex) = xlsxFile.TopLeftCell.ToExcelColumnAndRow();
+                (colIndex, rowIndex) = xlsxFile.TopLeftCell.ToExcelColumnAndRow();
             }
 
             var targetSpreadsheet = await gsheetClient.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
