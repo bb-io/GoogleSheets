@@ -512,6 +512,7 @@ namespace Apps.GoogleSheets.Actions
             if (!String.IsNullOrEmpty(xlsxFile.TopLeftCell))
             {
                 (colIndex, rowIndex) = xlsxFile.TopLeftCell.ToExcelColumnAndRow();
+                rowIndex = rowIndex - 1;
             }
 
             var targetSpreadsheet = await gsheetClient.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
@@ -527,6 +528,7 @@ namespace Apps.GoogleSheets.Actions
                 .ExecuteAsync();
 
             var copiedSheetId = copyResponse.SheetId.Value;
+            await driveClient.Files.Delete(tempSpreadsheetId).ExecuteAsync();
 
             var copyRequest = new Request
             {
@@ -544,7 +546,10 @@ namespace Apps.GoogleSheets.Actions
                     {
                         SheetId = targetSheetID,
                         StartRowIndex = rowIndex,
-                        StartColumnIndex = colIndex
+                        StartColumnIndex = colIndex,
+                        EndColumnIndex = colIndex,
+                        EndRowIndex = rowIndex
+
                     },
                     PasteType = "PASTE_NORMAL"
                 }
@@ -555,16 +560,9 @@ namespace Apps.GoogleSheets.Actions
                 Requests = new List<Request> { copyRequest }
             };
 
-            try 
-            {
-                await gsheetClient.Spreadsheets.BatchUpdate(batchUpdate, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
-            } catch (Exception ex) 
-            {
-                throw new PluginApplicationException(ex.Message + " source " + tempSheetId + " target " + targetSheetID );
-            }
-            
-
-            await driveClient.Files.Delete(tempSpreadsheetId).ExecuteAsync();
+            await gsheetClient.Spreadsheets.BatchUpdate(batchUpdate, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+            await gsheetClient.Spreadsheets.BatchUpdate( new BatchUpdateSpreadsheetRequest {Requests = new List<Request>{
+             new Request { DeleteSheet = new DeleteSheetRequest { SheetId = copiedSheetId}}}}, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
         }
 
         #region Glossaries
