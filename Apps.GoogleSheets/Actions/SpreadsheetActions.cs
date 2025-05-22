@@ -19,9 +19,8 @@ using Blackbird.Applications.Sdk.Common.Authentication;
 using CsvHelper;
 using System.Globalization;
 using CsvHelper.Configuration;
-using DocumentFormat.OpenXml.Spreadsheet;
 using SheetProperties = Google.Apis.Sheets.v4.Data.SheetProperties;
-using DocumentFormat.OpenXml.Drawing.Diagrams;
+using Google.Apis.Sheets.v4;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -78,7 +77,7 @@ namespace Apps.GoogleSheets.Actions
             return new CellDto { Value = result?.UpdatedData.Values[0][0].ToString() };
         }
 
-        [Action("DEBUG: Get auth data", Description = "Can be used only for debugging purposes.")]
+        [Action("Debug", Description = "Can be used only for debugging purposes.")]
         public List<AuthenticationCredentialsProvider> GetAuthenticationCredentialsProviders()
         {
             return InvocationContext.AuthenticationCredentialsProviders.ToList();
@@ -472,7 +471,99 @@ namespace Apps.GoogleSheets.Actions
 
         throw new PluginMisconfigurationException("File format must be PDF or XLSX.");
     }
-        
+
+        [Action("Paste into existing sheet from XLSX file", Description = "Append XLSX spreadsheet content into existing sheet")]
+        public async Task PasteFromExcel(
+                [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+                [ActionParameter] SheetRequest sheetRequest,
+                [ActionParameter] SourceFileRequest xlsxFile)
+        {
+            var driveClient = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
+            var sourceStream = await _fileManagementClient.DownloadAsync(xlsxFile.File);
+
+            var fileMetadata = new Google.Apis.Drive.v3.Data.File
+            {
+                Name = "TempImport",
+                MimeType = "application/vnd.google-apps.spreadsheet"
+            };
+
+            var request = driveClient.Files.Create(
+                fileMetadata,
+                sourceStream,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            );
+            request.Fields = "id";
+            var uploadedFile = await request.UploadAsync();
+            var tempSpreadsheetId = request.ResponseBody.Id;
+
+            var gsheetClient = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+            var tempSpreadsheet = await gsheetClient.Spreadsheets.Get(tempSpreadsheetId).ExecuteAsync();
+            var tempSheet = tempSpreadsheet.Sheets.First();
+            var sheetName = tempSheet.Properties.Title;
+            var range = $"{sheetName}";
+            var response = await gsheetClient.Spreadsheets.Values.Get(tempSpreadsheetId, range).ExecuteAsync();
+            int rowCount = response.Values.Count;
+            int colCount = response.Values.Max(row => row.Count);
+            int tempSheetId = tempSheet.Properties.SheetId.Value;
+
+            int rowIndex = 0;
+            int colIndex = 0;
+
+            if (!String.IsNullOrEmpty(xlsxFile.TopLeftCell))
+            {
+                (colIndex, rowIndex) = xlsxFile.TopLeftCell.ToExcelColumnAndRow();
+                rowIndex = rowIndex - 1;
+            }
+
+            var targetSpreadsheet = await gsheetClient.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+            var targetSheetID = targetSpreadsheet.Sheets.First(s => s.Properties.Title == sheetRequest.SheetName)?.Properties.SheetId.Value;
+
+            var copyToRequest = new CopySheetToAnotherSpreadsheetRequest
+            {
+                DestinationSpreadsheetId = spreadsheetFileRequest.SpreadSheetId
+            };
+
+            var copyResponse = await gsheetClient.Spreadsheets.Sheets
+                .CopyTo(copyToRequest, tempSpreadsheetId, tempSheetId)
+                .ExecuteAsync();
+
+            var copiedSheetId = copyResponse.SheetId.Value;
+            await driveClient.Files.Delete(tempSpreadsheetId).ExecuteAsync();
+
+            var copyRequest = new Request
+            {
+                CopyPaste = new CopyPasteRequest
+                {
+                    Source = new GridRange
+                    {
+                        SheetId = copiedSheetId,
+                        StartRowIndex = 0,
+                        StartColumnIndex = 0,
+                        EndRowIndex = rowCount,
+                        EndColumnIndex = colCount
+                    },
+                    Destination = new GridRange
+                    {
+                        SheetId = targetSheetID,
+                        StartRowIndex = rowIndex,
+                        StartColumnIndex = colIndex,
+                        EndColumnIndex = colIndex,
+                        EndRowIndex = rowIndex
+
+                    },
+                    PasteType = "PASTE_NORMAL"
+                }
+            };
+
+            var batchUpdate = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = new List<Request> { copyRequest }
+            };
+
+            await gsheetClient.Spreadsheets.BatchUpdate(batchUpdate, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+            await gsheetClient.Spreadsheets.BatchUpdate( new BatchUpdateSpreadsheetRequest {Requests = new List<Request>{
+             new Request { DeleteSheet = new DeleteSheetRequest { SheetId = copiedSheetId}}}}, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+        }
 
         #region Glossaries
 
