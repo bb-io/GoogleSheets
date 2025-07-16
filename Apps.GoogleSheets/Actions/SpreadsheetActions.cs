@@ -105,9 +105,14 @@ namespace Apps.GoogleSheets.Actions
             [ActionParameter] SheetRequest sheetRequest,
             [ActionParameter] InsertRowRequest insertRowRequest)
         {
-            if (insertRowRequest.Row == null || !insertRowRequest.Row.Any())
+            if (insertRowRequest?.Row == null || !insertRowRequest.Row.Any())
             {
                 throw new PluginMisconfigurationException("The row cannot be null or empty. Please check your input and try again");
+            }
+
+            if (insertRowRequest.Row.All(cell => string.IsNullOrWhiteSpace(cell)))
+            {
+                throw new PluginMisconfigurationException("The row cannot contain only empty values. Please check your input and try again");
             }
 
             var range = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
