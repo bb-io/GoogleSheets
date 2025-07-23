@@ -32,7 +32,7 @@ namespace Tests.GoogleSheets
         [TestMethod]
         public async Task SheetDatahandler_IsSuccess()
         {
-            var handler = new SheetDataSourceHandler(InvocationContext, new SpreadsheetFileRequest {SpreadSheetId= "1HdrGu1xMEA2MTnOeEleuh-iRlEKDTR0dMiaoU1WOAV0" });
+            var handler = new SheetDataSourceHandler(InvocationContext, new SpreadsheetFileRequest {SpreadSheetId= "" });
 
             var result = await handler.GetDataAsync(new DataSourceContext { }, CancellationToken.None);
 
