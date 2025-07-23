@@ -51,8 +51,8 @@ namespace Tests.GoogleSheets
         {
             var action = new SpreadsheetActions(InvocationContext, FileManager);
 
-            var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "" };
-            var spreadSheet = new SheetRequest { SheetName = "" };
+            var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "1HdrGu1xMEA2MTnOeEleuh-iRlEKDTR0dMiaoU1WOAV0" };
+            var spreadSheet = new SheetRequest { SheetName = "(WIP) Rokt Bundle Offer Copy" };
             var rangeRequest = new OptionalRangeRequest {  };
 
             var result = await action.DownloadCSV(spreadsheetFileRequest, spreadSheet, rangeRequest, new CsvOptions { });
