@@ -21,6 +21,8 @@ using System.Globalization;
 using CsvHelper.Configuration;
 using SheetProperties = Google.Apis.Sheets.v4.Data.SheetProperties;
 using Google.Apis.Sheets.v4;
+using Google;
+using Apps.GoogleSheets.Utils;
 
 namespace Apps.GoogleSheets.Actions
 {
@@ -407,7 +409,8 @@ namespace Apps.GoogleSheets.Actions
             }
             else
             {
-                rows = (await GetUsedRange(spreadsheetFileRequest, sheetRequest)).Rows.Select(x => x.Values).ToList();
+                var usedRange = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>GetUsedRange(spreadsheetFileRequest, sheetRequest));
+                rows = usedRange.Rows.Select(x => x.Values).ToList();
             }
 
             var columnCount = rows.Select(x => x.Count()).ToList().Max();
@@ -939,34 +942,7 @@ namespace Apps.GoogleSheets.Actions
                 return value;
             }
             throw new PluginMisconfigurationException("The row value should be a number, e.g. 1");
-        }
-
-        public static class ErrorHandler
-        {
-            public static async Task ExecuteWithErrorHandlingAsync(Func<Task> action)
-            {
-                try
-                {
-                    await action();
-                }
-                catch (Exception ex)
-                {
-                    throw new PluginApplicationException(ex.Message);
-                }
-            }
-
-            public static async Task<T> ExecuteWithErrorHandlingAsync<T>(Func<Task<T>> action)
-            {
-                try
-                {
-                    return await action();
-                }
-                catch (Exception ex)
-                {
-                    throw new PluginApplicationException(ex.Message);
-                }
-            }
-        }
+        }     
 
         #endregion
     }
