@@ -2,6 +2,7 @@
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Common;
+using Google.Apis.Sheets.v4.Data;
 
 namespace Apps.GoogleSheets.DataSourceHandler
 {
@@ -17,20 +18,35 @@ namespace Apps.GoogleSheets.DataSourceHandler
         public Dictionary<string, string> GetData(DataSourceContext context)
         {
             var client = new GoogleDriveClient(Creds);
-            var filesListr = client.Files.List();
+            var request = client.Files.List();
             var query = "mimeType='application/vnd.google-apps.spreadsheet' and trashed = false";
-            if (context.SearchString != null)
+            if (!string.IsNullOrEmpty(context.SearchString))
             {
-                query += $" and name contains '${context.SearchString}'";
+                query += $" and name contains '{context.SearchString}'";
             }
-            filesListr.IncludeItemsFromAllDrives = true;
-            filesListr.SupportsAllDrives = true;
-            filesListr.Q = query;
-            filesListr.PageSize = 20;
-            var filesList = filesListr.Execute();
+            request.IncludeItemsFromAllDrives = true;
+            request.SupportsAllDrives = true;
+            request.Q = query;
 
+            request.PageSize = 1000;
 
-            return filesList.Files.ToDictionary(x => x.Id, x => x.Name);
+            var allFiles = new List<Google.Apis.Drive.v3.Data.File>();
+            string pageToken = null;
+
+            do
+            {
+                request.PageToken = pageToken;
+                var response = request.Execute(); 
+
+                if (response.Files != null && response.Files.Any())
+                    allFiles.AddRange(response.Files);
+
+                pageToken = response.NextPageToken;
+            }
+            while (!string.IsNullOrEmpty(pageToken));
+
+            return allFiles
+                .ToDictionary(x => x.Id, x => x.Name);
         }
     }
 }
