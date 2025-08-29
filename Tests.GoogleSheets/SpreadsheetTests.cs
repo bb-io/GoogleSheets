@@ -93,5 +93,19 @@ namespace Tests.GoogleSheets
             Assert.IsNotNull(result);
         }
 
+        [TestMethod]
+        public async Task CreateSpreadsheet_ReturnsSuccess()
+        {
+            var action = new SpreadsheetActions(InvocationContext, FileManager);
+
+            var spreadsheetFileRequest = new CreateSpreadsheetRequest { Title = "Test from API", InitialSheetName = "First sheet" };
+
+            var result = await action.CreateSpreadsheet(spreadsheetFileRequest);
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(result);
+            Console.WriteLine(json);
+
+            Assert.IsNotNull(result);
+        }
+
     }
 }

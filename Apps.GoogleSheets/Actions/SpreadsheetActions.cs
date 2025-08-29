@@ -170,6 +170,42 @@ namespace Apps.GoogleSheets.Actions
             return new(response.Replies[0].AddSheet.Properties);
         }
 
+        [Action("Create spreadsheet", Description = "Create a new spreadsheet")]
+        public async Task<SpreadsheetDto> CreateSpreadsheet([ActionParameter] CreateSpreadsheetRequest input)
+        {
+            if (string.IsNullOrWhiteSpace(input.Title))
+                throw new PluginMisconfigurationException("Title cannot be empty. Please provide a spreadsheet title and try again");
+
+            var sheets = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+
+            var spreadsheet = new Spreadsheet
+            {
+                Properties = new SpreadsheetProperties { Title = input.Title }
+            };
+
+            if (!string.IsNullOrWhiteSpace(input.InitialSheetName))
+            {
+                spreadsheet.Sheets = new List<Sheet>
+                {
+                    new()
+                    {
+                        Properties = new SheetProperties { Title = input.InitialSheetName }
+                    }
+                };
+                    }
+
+            var created = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
+                await sheets.Spreadsheets.Create(spreadsheet).ExecuteAsync());
+
+            return new SpreadsheetDto
+            {
+                Id = created.SpreadsheetId,
+                Url = created.SpreadsheetUrl,
+                Title = created.Properties?.Title ?? input.Title
+            };
+        }
+
+
         [Action("Get sheet used range", Description = "Get used range")]
         public async Task<RowsDto> GetUsedRange(
             [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
