@@ -10,7 +10,6 @@ namespace Apps.GoogleSheets.Models.Requests
         public string Title { get; set; }
 
         [Display("Sheet name")]
-        [DataSource(typeof(SheetDataSourceHandler))]
         public string? InitialSheetName { get; set; }
     }
 }
