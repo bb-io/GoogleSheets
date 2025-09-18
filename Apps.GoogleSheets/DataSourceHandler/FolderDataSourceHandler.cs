@@ -5,14 +5,10 @@ using Blackbird.Applications.Sdk.Common.Invocation;
 
 namespace Apps.GoogleSheets.DataSourceHandler;
 
-public class FolderDataSourceHandler : BaseInvocable, IDataSourceItemHandler
+public class FolderDataSourceHandler(InvocationContext invocationContext) : BaseInvocable(invocationContext), IDataSourceItemHandler
 {
     private IEnumerable<AuthenticationCredentialsProvider> Creds =>
         InvocationContext.AuthenticationCredentialsProviders;
-
-    public FolderDataSourceHandler(InvocationContext invocationContext) : base(invocationContext)
-    {
-    }
 
     public IEnumerable<DataSourceItem> GetData(DataSourceContext context)
     {
