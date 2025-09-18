@@ -1,48 +1,59 @@
 ﻿using Apps.GoogleSheets.DataSourceHandler;
 using Apps.GoogleSheets.Models.Requests;
 using Blackbird.Applications.Sdk.Common.Dynamic;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Tests.GoogleSheets.Base;
 
-namespace Tests.GoogleSheets
+namespace Tests.GoogleSheets;
+
+[TestClass]
+public class DatahandlerTests :TestBase
 {
-    [TestClass]
-    public class DatahandlerTests :TestBase
+    [TestMethod]
+    public async Task SpreadsheetDatahandler_IsSuccess()
     {
-        [TestMethod]
-        public async Task SpreadsheetDatahandler_IsSuccess()
+        var handler = new SpreadsheetFileDataSourceHandler(InvocationContext);
+
+        var result = handler.GetData(new DataSourceContext { });
+
+        Console.WriteLine($"Total: {result.Count()}");
+        foreach (var item in result)
         {
-            var handler = new SpreadsheetFileDataSourceHandler(InvocationContext);
-
-            var result = handler.GetData(new DataSourceContext { });
-
-            Console.WriteLine($"Total: {result.Count()}");
-            foreach (var item in result)
-            {
-                Console.WriteLine($"{item.Value}: {item.Key}");
-            }
-
-            Assert.IsTrue(result.Count() > 0);
+            Console.WriteLine($"{item.Value}: {item.Key}");
         }
 
-        [TestMethod]
-        public async Task SheetDatahandler_IsSuccess()
+        Assert.IsTrue(result.Count() > 0);
+    }
+
+    [TestMethod]
+    public async Task SheetDatahandler_IsSuccess()
+    {
+        var handler = new SheetDataSourceHandler(InvocationContext, new SpreadsheetFileRequest {SpreadSheetId= "" });
+
+        var result = await handler.GetDataAsync(new DataSourceContext { }, CancellationToken.None);
+
+        Console.WriteLine($"Total: {result.Count()}");
+        foreach (var item in result)
         {
-            var handler = new SheetDataSourceHandler(InvocationContext, new SpreadsheetFileRequest {SpreadSheetId= "" });
+            Console.WriteLine($"{item.Value}: {item.Key}");
+        }
 
-            var result = await handler.GetDataAsync(new DataSourceContext { }, CancellationToken.None);
+        Assert.IsTrue(result.Count() > 0);
+    }
 
-            Console.WriteLine($"Total: {result.Count()}");
-            foreach (var item in result)
-            {
-                Console.WriteLine($"{item.Value}: {item.Key}");
-            }
+    [TestMethod]
+    public void FolderDataHandler_IsSuccess()
+    {
+        // Arrange
+        var handler = new FolderDataSourceHandler(InvocationContext);
 
-            Assert.IsTrue(result.Count() > 0);
+        // Act
+        var result = handler.GetData(new DataSourceContext { });
+
+        // Assert
+        Console.WriteLine($"Total: {result.Count()}");
+        foreach (var item in result)
+        {
+            Console.WriteLine($"{item.Value}: {item.DisplayName}");
         }
     }
 }

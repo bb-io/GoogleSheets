@@ -3,109 +3,127 @@ using Apps.GoogleSheets.Models.Requests;
 using Apps.GoogleSheets.Models.Responses;
 using Tests.GoogleSheets.Base;
 
-namespace Tests.GoogleSheets
+namespace Tests.GoogleSheets;
+
+[TestClass]
+public class SpreadsheetTests : TestBase
 {
-    [TestClass]
-    public class SpreadsheetTests : TestBase
+    [TestMethod]
+    public async Task GetRange_ReturnsSuccess()
     {
-        [TestMethod]
-        public async Task GetRange_ReturnsSuccess()
+        var action = new SpreadsheetActions(InvocationContext, FileManager);
+
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId= "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
+        var spreadSheet = new SheetRequest { SheetName= "__" };
+        var rangeRequest = new RangeRequest {StartCell= "A1", EndCell= "C3" };
+
+        var result = await action.GetRange(spreadsheetFileRequest, spreadSheet, rangeRequest);
+
+        foreach (var row in result.Rows)
         {
-            var action = new SpreadsheetActions(InvocationContext, FileManager);
-
-            var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId= "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
-            var spreadSheet = new SheetRequest { SheetName= "__" };
-            var rangeRequest = new RangeRequest {StartCell= "A1", EndCell= "C3" };
-
-            var result = await action.GetRange(spreadsheetFileRequest, spreadSheet, rangeRequest);
-
-            foreach (var row in result.Rows)
+            Console.Write($"Row {row.RowId}: ");
+            foreach (var value in row.Values)
             {
-                Console.Write($"Row {row.RowId}: ");
-                foreach (var value in row.Values)
-                {
-                    Console.Write($"{value}, ");
-                }
-                Console.WriteLine();
+                Console.Write($"{value}, ");
             }
-
-            Assert.IsNotNull(result);
+            Console.WriteLine();
         }
 
-        [TestMethod]
-        public async Task DownloadCsv_with_range_ReturnsSuccess()
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
+    public async Task DownloadCsv_with_range_ReturnsSuccess()
+    {
+        var action = new SpreadsheetActions(InvocationContext, FileManager);
+
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "" };
+        var spreadSheet = new SheetRequest { SheetName = "YOUR_FILE_NAME" };
+        var rangeRequest = new OptionalRangeRequest { StartCell = "B3", EndCell = "D17" };
+
+        var result = await action.DownloadCSV(spreadsheetFileRequest, spreadSheet, rangeRequest, new CsvOptions { });
+
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
+    public async Task DownloadCsv_without_range_ReturnsSuccess()
+    {
+        var action = new SpreadsheetActions(InvocationContext, FileManager);
+
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "" };
+        var spreadSheet = new SheetRequest { SheetName = "" };
+        var rangeRequest = new OptionalRangeRequest {  };
+
+        var result = await action.DownloadCSV(spreadsheetFileRequest, spreadSheet, rangeRequest, new CsvOptions { });
+
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
+    public async Task ImportCsv_with_range_ReturnsSuccess()
+    {
+        var action = new SpreadsheetActions(InvocationContext, FileManager);
+
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
+        var spreadSheet = new SheetRequest { SheetName = "Стальна шерсть" };
+        var rangeRequest = new OptionalRangeRequest
         {
-            var action = new SpreadsheetActions(InvocationContext, FileManager);
+          
+        };
+        var fileCsv = new FileResponse { File = new Blackbird.Applications.Sdk.Common.Files.FileReference { Name= "test.csv" } };
 
-            var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "" };
-            var spreadSheet = new SheetRequest { SheetName = "YOUR_FILE_NAME" };
-            var rangeRequest = new OptionalRangeRequest { StartCell = "B3", EndCell = "D17" };
+        var result = await action.ImportCSVAppend(spreadsheetFileRequest, spreadSheet, fileCsv, new CsvOptions { },null);
 
-            var result = await action.DownloadCSV(spreadsheetFileRequest, spreadSheet, rangeRequest, new CsvOptions { });
+        Assert.IsNotNull(result);
+    }
 
-            Assert.IsNotNull(result);
-        }
+    [TestMethod]
+    public async Task ExportGlossary_ReturnsSuccess()
+    {
+        var action = new SpreadsheetActions(InvocationContext, FileManager);
 
-        [TestMethod]
-        public async Task DownloadCsv_without_range_ReturnsSuccess()
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "1zq3Ztl-dBUn_PWQS-J0FaiPGehw-nfqo1Arv_a7W42A" };
+        var spreadSheet = new SheetRequest { SheetName = "Лист1" };
+        var rangeRequest = new OptionalRangeRequest { };
+
+        var result = await action.ExportGlossary(spreadsheetFileRequest, spreadSheet, string.Empty,string.Empty);
+
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
+    public async Task CreateSpreadsheet_WithoutFolderId_ReturnsSuccess()
+    {
+        var action = new SpreadsheetActions(InvocationContext, FileManager);
+
+        var spreadsheetFileRequest = new CreateSpreadsheetRequest { Title = "Test from API", InitialSheetName = "First sheet" };
+
+        var result = await action.CreateSpreadsheet(spreadsheetFileRequest);
+        var json = Newtonsoft.Json.JsonConvert.SerializeObject(result);
+        Console.WriteLine(json);
+
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
+    public async Task CreateSpreadsheet_WithFolderId_ReturnsSuccess()
+    {
+        // Arrange
+        var action = new SpreadsheetActions(InvocationContext, FileManager);
+        var folderId = "1BZqp0LCeQwrmmgXf5KQLBrMrEBF4FxoZ";
+        var request = new CreateSpreadsheetRequest
         {
-            var action = new SpreadsheetActions(InvocationContext, FileManager);
+            Title = "Folders test",
+            FolderId = folderId,
+        };
 
-            var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "" };
-            var spreadSheet = new SheetRequest { SheetName = "" };
-            var rangeRequest = new OptionalRangeRequest {  };
+        // Act
+        var result = await action.CreateSpreadsheet(request);
 
-            var result = await action.DownloadCSV(spreadsheetFileRequest, spreadSheet, rangeRequest, new CsvOptions { });
+        // Assert
+        Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(result));
 
-            Assert.IsNotNull(result);
-        }
-
-        [TestMethod]
-        public async Task ImportCsv_with_range_ReturnsSuccess()
-        {
-            var action = new SpreadsheetActions(InvocationContext, FileManager);
-
-            var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
-            var spreadSheet = new SheetRequest { SheetName = "Стальна шерсть" };
-            var rangeRequest = new OptionalRangeRequest
-            {
-              
-            };
-            var fileCsv = new FileResponse { File = new Blackbird.Applications.Sdk.Common.Files.FileReference { Name= "test.csv" } };
-
-            var result = await action.ImportCSVAppend(spreadsheetFileRequest, spreadSheet, fileCsv, new CsvOptions { },null);
-
-            Assert.IsNotNull(result);
-        }
-
-
-        [TestMethod]
-        public async Task ExportGlossary_ReturnsSuccess()
-        {
-            var action = new SpreadsheetActions(InvocationContext, FileManager);
-
-            var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "1zq3Ztl-dBUn_PWQS-J0FaiPGehw-nfqo1Arv_a7W42A" };
-            var spreadSheet = new SheetRequest { SheetName = "Лист1" };
-            var rangeRequest = new OptionalRangeRequest { };
-
-            var result = await action.ExportGlossary(spreadsheetFileRequest, spreadSheet, string.Empty,string.Empty);
-
-            Assert.IsNotNull(result);
-        }
-
-        [TestMethod]
-        public async Task CreateSpreadsheet_ReturnsSuccess()
-        {
-            var action = new SpreadsheetActions(InvocationContext, FileManager);
-
-            var spreadsheetFileRequest = new CreateSpreadsheetRequest { Title = "Test from API", InitialSheetName = "First sheet" };
-
-            var result = await action.CreateSpreadsheet(spreadsheetFileRequest);
-            var json = Newtonsoft.Json.JsonConvert.SerializeObject(result);
-            Console.WriteLine(json);
-
-            Assert.IsNotNull(result);
-        }
-
+        Assert.IsNotNull(result);
     }
 }
