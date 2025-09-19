@@ -116,12 +116,12 @@ public class SpreadsheetActions : BaseInvocable
             throw new PluginMisconfigurationException("The row cannot contain only empty values. Please check your input and try again");
         }
 
-        var range = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
+        var range = await ErrorHandler.ExecuteWithErrorHandlingAsync(() => GetUsedRange(spreadsheetFileRequest, sheetRequest));
         int newRowIndex;
         if (range != null && range?.Rows != null ) { newRowIndex = range.Rows.Count + 1; }
         else { newRowIndex = 1; }
         var startColumn = insertRowRequest.ColumnAddress ?? "A";
-        return await UpdateRow(spreadsheetFileRequest, sheetRequest, new UpdateRowRequest { Row = insertRowRequest.Row, CellAddress = startColumn + newRowIndex });
+        return await ErrorHandler.ExecuteWithErrorHandlingAsync(() => UpdateRow(spreadsheetFileRequest, sheetRequest, new UpdateRowRequest { Row = insertRowRequest.Row, CellAddress = startColumn + newRowIndex }));
     }
 
     [Action("Update sheet row", Description = "Update row by start address")]
