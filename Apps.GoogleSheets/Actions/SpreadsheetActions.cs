@@ -928,10 +928,8 @@ public class SpreadsheetActions : BaseInvocable
         var request = client.Spreadsheets.Values.Get(sheetId, range);
 
         var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await request.ExecuteAsync());
-        if (response is null || response?.Values?.Count == 0) 
-        {
-            return null;
-        }
+        if (response?.Values == null || response.Values.Count == 0)
+            return new List<IList<object?>>(0);
         return response?.Values;
     }
     private List<int> GetIdsRange(int start, int end)

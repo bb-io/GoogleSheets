@@ -51,8 +51,8 @@ public class SpreadsheetTests : TestBase
     {
         var action = new SpreadsheetActions(InvocationContext, FileManager);
 
-        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "" };
-        var spreadSheet = new SheetRequest { SheetName = "" };
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
+        var spreadSheet = new SheetRequest { SheetName = "Стальна шерсть" };
         var rangeRequest = new OptionalRangeRequest {  };
 
         var result = await action.DownloadCSV(spreadsheetFileRequest, spreadSheet, rangeRequest, new CsvOptions { });
