@@ -11,5 +11,5 @@ public class GetSpreadsheetsRequest
     public string? FolderId { get; set; }
 
     [Display("Get deleted spreadsheets")]
-    public bool? FetchDeleted { get; set; } = false;
+    public bool? FetchDeleted { get; set; }
 }

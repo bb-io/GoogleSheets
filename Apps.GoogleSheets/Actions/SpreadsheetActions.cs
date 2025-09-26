@@ -614,7 +614,7 @@ public class SpreadsheetActions : BaseInvocable
     public async Task<List<SpreadsheetDto>> SearchSpreadsheets([ActionParameter] GetSpreadsheetsRequest request)
     {
         var driveClient = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
-        string query = $"mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = {request.FetchDeleted}"; 
+        string query = $"mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = {request.FetchDeleted ?? false}"; 
         if (!string.IsNullOrEmpty(request.FolderId))
             query += $" and '{request.FolderId}' in parents";
 
