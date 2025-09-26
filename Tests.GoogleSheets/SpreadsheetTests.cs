@@ -51,8 +51,8 @@ public class SpreadsheetTests : TestBase
     {
         var action = new SpreadsheetActions(InvocationContext, FileManager);
 
-        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "" };
-        var spreadSheet = new SheetRequest { SheetName = "" };
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
+        var spreadSheet = new SheetRequest { SheetName = "Стальна шерсть" };
         var rangeRequest = new OptionalRangeRequest {  };
 
         var result = await action.DownloadCSV(spreadsheetFileRequest, spreadSheet, rangeRequest, new CsvOptions { });
@@ -124,6 +124,60 @@ public class SpreadsheetTests : TestBase
         // Assert
         Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(result));
 
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
+    public async Task SearchSpreadsheets_WithoutFolderId_ReturnsSuccess()
+    {
+        // Arrange
+        var actions = new SpreadsheetActions(InvocationContext, FileManager);
+        var request = new GetSpreadsheetsRequest { FolderId = "" };
+
+        // Act
+        var result = await actions.SearchSpreadsheets(request);
+
+        // Assert
+        foreach (var item in result)
+        {
+            Console.WriteLine($"{item.Id} - {item.Title} - {item.Url}");
+        }
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
+    public async Task SearchSpreadsheets_WithDeletedFiles_ReturnsSuccess()
+    {
+        // Arrange
+        var actions = new SpreadsheetActions(InvocationContext, FileManager);
+        var request = new GetSpreadsheetsRequest { FolderId = "", FetchDeleted = true };
+
+        // Act
+        var result = await actions.SearchSpreadsheets(request);
+
+        // Assert
+        foreach (var item in result)
+        {
+            Console.WriteLine($"{item.Id} - {item.Title} - {item.Url}");
+        }
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
+    public async Task SearchSpreadsheets_WithFolderId_ReturnsSuccess()
+    {
+        // Arrange
+        var actions = new SpreadsheetActions(InvocationContext, FileManager);
+        var request = new GetSpreadsheetsRequest { FolderId = "1RaFCHuL42HAz7RF1GxyB7M5GZcxE49Ro" };
+
+        // Act
+        var result = await actions.SearchSpreadsheets(request);
+
+        // Assert
+        foreach (var item in result)
+        {
+            Console.WriteLine($"{item.Id} - {item.Title} - {item.Url}");
+        }
         Assert.IsNotNull(result);
     }
 }
