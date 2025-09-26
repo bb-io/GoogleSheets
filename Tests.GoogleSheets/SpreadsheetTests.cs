@@ -146,6 +146,24 @@ public class SpreadsheetTests : TestBase
     }
 
     [TestMethod]
+    public async Task SearchSpreadsheets_WithDeletedFiles_ReturnsSuccess()
+    {
+        // Arrange
+        var actions = new SpreadsheetActions(InvocationContext, FileManager);
+        var request = new GetSpreadsheetsRequest { FolderId = "", FetchDeleted = true };
+
+        // Act
+        var result = await actions.SearchSpreadsheets(request);
+
+        // Assert
+        foreach (var item in result)
+        {
+            Console.WriteLine($"{item.Id} - {item.Title} - {item.Url}");
+        }
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
     public async Task SearchSpreadsheets_WithFolderId_ReturnsSuccess()
     {
         // Arrange
