@@ -14,7 +14,6 @@ using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using CsvHelper;
 using CsvHelper.Configuration;
-using Google.Apis.Drive.v3;
 using Google.Apis.Sheets.v4.Data;
 using System.Globalization;
 using System.Net.Mime;
@@ -209,7 +208,6 @@ public class SpreadsheetActions : BaseInvocable
         };
     }
 
-
     [Action("Get sheet used range", Description = "Get used range")]
     public async Task<RowsDto> GetUsedRange(
         [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
@@ -227,7 +225,6 @@ public class SpreadsheetActions : BaseInvocable
         }
         else return new RowsDto() { };
     }
-
 
     [Action("Get range", Description = "Get specific range")]
     public async Task<RowsDto> GetRange(
@@ -334,6 +331,7 @@ public class SpreadsheetActions : BaseInvocable
         }
         return sum;
     }
+   
     [Action("Import CSV (Append)", Description = "Import CSV file into Google Sheets")]
     public async Task<SheetDto> ImportCSVAppend(
         [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
@@ -409,8 +407,7 @@ public class SpreadsheetActions : BaseInvocable
 
         return new SheetDto(sheet);
     }
-
-   
+       
     private CsvConfiguration CreateConfiguration(CsvOptions csvOptions)
     {
         var config = new CsvConfiguration(CultureInfo.InvariantCulture);
@@ -491,34 +488,34 @@ public class SpreadsheetActions : BaseInvocable
         [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
         [ActionParameter] FileFormatRequest input)
     {
-     if (string.IsNullOrWhiteSpace(spreadsheetFileRequest.SpreadSheetId))
-    throw new PluginMisconfigurationException("Spreadsheet ID can not be null or empty. Please check your input and try again");
-       
-        
-    var client = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
-    var metadata = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
-        if (input.Format == "PDF")
-    {
-        var fileStream = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files
-            .Export(spreadsheetFileRequest.SpreadSheetId, MediaTypeNames.Application.Pdf).ExecuteAsStreamAsync());
-        return new()
-        {
-            File = await _fileManagementClient.UploadAsync(fileStream, MediaTypeNames.Application.Pdf,
-                $"{metadata.Name}.pdf")
-        };
-    } else if (input.Format == "XLSX")
-    {
-        var fileStream = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files
-            .Export(spreadsheetFileRequest.SpreadSheetId, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").ExecuteAsStreamAsync());
-        return new()
-        {
-            File = await _fileManagementClient.UploadAsync(fileStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                $"{metadata.Name}.xlsx")
-        };
-    }
+        if (string.IsNullOrWhiteSpace(spreadsheetFileRequest.SpreadSheetId))
+            throw new PluginMisconfigurationException("Spreadsheet ID can not be null or empty. Please check your input and try again");
 
-    throw new PluginMisconfigurationException("File format must be PDF or XLSX.");
-}
+
+        var client = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
+        var metadata = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
+        if (input.Format == "PDF")
+        {
+            var fileStream = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files
+                .Export(spreadsheetFileRequest.SpreadSheetId, MediaTypeNames.Application.Pdf).ExecuteAsStreamAsync());
+            return new()
+            {
+                File = await _fileManagementClient.UploadAsync(fileStream, MediaTypeNames.Application.Pdf,
+                    $"{metadata.Name}.pdf")
+            };
+        } else if (input.Format == "XLSX")
+        {
+            var fileStream = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files
+                .Export(spreadsheetFileRequest.SpreadSheetId, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").ExecuteAsStreamAsync());
+            return new()
+            {
+                File = await _fileManagementClient.UploadAsync(fileStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"{metadata.Name}.xlsx")
+            };
+        }
+
+        throw new PluginMisconfigurationException("File format must be PDF or XLSX.");
+    }
 
     [Action("Paste into existing sheet from XLSX file", Description = "Append XLSX spreadsheet content into existing sheet")]
     public async Task PasteFromExcel(
@@ -611,6 +608,23 @@ public class SpreadsheetActions : BaseInvocable
         await gsheetClient.Spreadsheets.BatchUpdate(batchUpdate, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
         await gsheetClient.Spreadsheets.BatchUpdate( new BatchUpdateSpreadsheetRequest {Requests = new List<Request>{
          new Request { DeleteSheet = new DeleteSheetRequest { SheetId = copiedSheetId}}}}, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+    }
+
+    [Action("Search spreadsheets", Description = "Search all spreadsheets")]
+    public async Task<List<SpreadsheetDto>> SearchSpreadsheets([ActionParameter] GetSpreadsheetsRequest request)
+    {
+        var driveClient = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
+        string query = "mimeType = 'application/vnd.google-apps.spreadsheet'"; 
+        if (!string.IsNullOrEmpty(request.FolderId))
+            query += $" and '{request.FolderId}' in parents";
+
+        var driveRequest = driveClient.Files.List();
+        driveRequest.Q = query;
+        driveRequest.Fields = "files(id, name, webViewLink)";
+
+        var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await driveRequest.ExecuteAsync());
+        var spreadsheets = result.Files.Select(f => new SpreadsheetDto { Id = f.Id, Title = f.Name, Url = f.WebViewLink }).ToList();
+        return spreadsheets;
     }
 
     #region Glossaries

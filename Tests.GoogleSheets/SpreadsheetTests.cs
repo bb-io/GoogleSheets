@@ -126,4 +126,40 @@ public class SpreadsheetTests : TestBase
 
         Assert.IsNotNull(result);
     }
+
+    [TestMethod]
+    public async Task SearchSpreadsheets_WithoutFolderId_ReturnsSuccess()
+    {
+        // Arrange
+        var actions = new SpreadsheetActions(InvocationContext, FileManager);
+        var request = new GetSpreadsheetsRequest { FolderId = "" };
+
+        // Act
+        var result = await actions.SearchSpreadsheets(request);
+
+        // Assert
+        foreach (var item in result)
+        {
+            Console.WriteLine($"{item.Id} - {item.Title} - {item.Url}");
+        }
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
+    public async Task SearchSpreadsheets_WithFolderId_ReturnsSuccess()
+    {
+        // Arrange
+        var actions = new SpreadsheetActions(InvocationContext, FileManager);
+        var request = new GetSpreadsheetsRequest { FolderId = "1RaFCHuL42HAz7RF1GxyB7M5GZcxE49Ro" };
+
+        // Act
+        var result = await actions.SearchSpreadsheets(request);
+
+        // Assert
+        foreach (var item in result)
+        {
+            Console.WriteLine($"{item.Id} - {item.Title} - {item.Url}");
+        }
+        Assert.IsNotNull(result);
+    }
 }
