@@ -43,8 +43,8 @@ public class SpreadsheetActions : BaseInvocable
     {
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
-        var sheetValues = await GetSheetValues(client,
-            spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column}{ParseRow(input.Row)}", $"{input.Column}{ParseRow(input.Row)}");
+        var sheetValues = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await GetSheetValues(client,
+            spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column}{ParseRow(input.Row)}", $"{input.Column}{ParseRow(input.Row)}"));
         if (sheetValues is null || String.IsNullOrEmpty(sheetValues[0][0]?.ToString())) 
         {
             return new CellDto { Value = string.Empty };
@@ -91,8 +91,8 @@ public class SpreadsheetActions : BaseInvocable
     {
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
-        var result = await GetSheetValues(client,
-            spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column1}{ParseRow(input.RowIndex)}", $"{input.Column2}{ParseRow(input.RowIndex)}");
+        var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await GetSheetValues(client,
+            spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column1}{ParseRow(input.RowIndex)}", $"{input.Column2}{ParseRow(input.RowIndex)}"));
         if (result is null )
         { return new RowDto { Row = new List<string>() }; }
 
@@ -215,10 +215,10 @@ public class SpreadsheetActions : BaseInvocable
     {
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
         var request = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
-        var result = await request.ExecuteAsync();
+        var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await request.ExecuteAsync());
         if (result != null && result?.Values != null)
         {
-            var rangeIDs = GetIdsRange(1, result.Values.Count);
+            var rangeIDs = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => GetIdsRange(1, result.Values.Count));
             var rows = result?.Values?.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList();
             return new RowsDto() { Rows = rangeIDs.Zip(rows, (id, rowvalues) => new _row { RowId = id, Values = rowvalues }).ToList(),
             RowsCount = (double)result?.Values?.Count}; 
@@ -267,7 +267,7 @@ public class SpreadsheetActions : BaseInvocable
         [ActionParameter] GetColumnRequest columnRequest)
     {
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-        var result = await GetSheetValues(client,
+        var result = await  GetSheetValues(client,
             spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{columnRequest.Column}{ParseRow(columnRequest.StartRow)}", $"{columnRequest.Column}{ParseRow(columnRequest.EndRow)}");
         if (result is null)
         {
