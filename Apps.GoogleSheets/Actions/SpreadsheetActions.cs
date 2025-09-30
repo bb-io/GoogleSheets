@@ -627,6 +627,47 @@ public class SpreadsheetActions : BaseInvocable
         return spreadsheets;
     }
 
+    [Action("Delete sheet", Description = "Delete a sheet within a spreadsheet")]
+    public async Task DeleteSheet([ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,[ActionParameter] SheetRequest sheetRequest)
+    {
+        if (string.IsNullOrWhiteSpace(spreadsheetFileRequest.SpreadSheetId))
+            throw new PluginMisconfigurationException("Spreadsheet ID cannot be empty. Please check your input and try again.");
+        if (string.IsNullOrWhiteSpace(sheetRequest.SheetName))
+            throw new PluginMisconfigurationException("Sheet name cannot be empty. Please check your input and try again.");
+
+        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+
+        var spreadsheet = await ErrorHandler.ExecuteWithErrorHandlingAsync(
+            async () => await client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
+
+        var targetSheetProps = spreadsheet.Sheets?
+            .FirstOrDefault(s => s.Properties?.Title == sheetRequest.SheetName)?.Properties;
+
+        if (targetSheetProps?.SheetId is null)
+            throw new PluginMisconfigurationException($"Sheet '{sheetRequest.SheetName}' was not found in the spreadsheet.");
+
+        var sheetCount = spreadsheet.Sheets?.Count ?? 0;
+        if (sheetCount <= 1)
+            throw new PluginApplicationException("A spreadsheet must contain at least one sheet. Create another sheet before deleting this one.");
+
+        var batchRequest = new BatchUpdateSpreadsheetRequest
+        {
+            Requests = new List<Request>
+        {
+            new Request
+            {
+                DeleteSheet = new DeleteSheetRequest
+                {
+                    SheetId = targetSheetProps.SheetId
+                }
+            }
+        }
+        };
+
+        await ErrorHandler.ExecuteWithErrorHandlingAsync(
+            async () => await client.Spreadsheets.BatchUpdate(batchRequest, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
+    }
+
     #region Glossaries
 
     private const string Term = "Term";
