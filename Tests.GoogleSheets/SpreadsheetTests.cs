@@ -180,4 +180,14 @@ public class SpreadsheetTests : TestBase
         }
         Assert.IsNotNull(result);
     }
+
+    [TestMethod]
+    public async Task DeleteSheets_ReturnsSuccess()
+    {
+        var actions = new SpreadsheetActions(InvocationContext, FileManager);
+
+        await actions.DeleteSheet(new SpreadsheetFileRequest { SpreadSheetId= "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" },new SheetRequest { SheetName="Test"});
+
+        Assert.IsTrue(true);
+    }
 }
