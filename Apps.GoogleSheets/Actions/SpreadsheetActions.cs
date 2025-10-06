@@ -964,18 +964,17 @@ public class SpreadsheetActions : BaseInvocable
 
     private static async Task ValidateTbxOrThrow(Stream stream, FileReference file)
     {
-        var looksLikeXml = (file?.Name?.EndsWith(".tbx", StringComparison.OrdinalIgnoreCase) ?? false)
-                        || (file?.Name?.EndsWith(".xml", StringComparison.OrdinalIgnoreCase) ?? false)
-                        || (file?.ContentType?.IndexOf("xml", StringComparison.OrdinalIgnoreCase) >= 0);
-
         if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
-        using var sr = new StreamReader(stream, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: true);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        ms.Position = 0;
+
+        using var sr = new StreamReader(ms, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
         var buf = new char[4096];
         var n = await sr.ReadAsync(buf, 0, buf.Length);
         var head = new string(buf, 0, Math.Max(0, n)).TrimStart();
-        if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
 
-        if ((!looksLikeXml && (head.Length == 0 || head[0] != '<')))
+        if (string.IsNullOrWhiteSpace(head) || head[0] != '<')
             throw new PluginMisconfigurationException("Invalid file format: expected TBX.");
 
         if (head.IndexOf("<tbx", StringComparison.OrdinalIgnoreCase) < 0)
@@ -983,6 +982,8 @@ public class SpreadsheetActions : BaseInvocable
 
         if (head.IndexOf("urn:iso:std:iso:30042", StringComparison.OrdinalIgnoreCase) < 0)
             throw new PluginMisconfigurationException("Invalid TBX: required TBX namespace not found.");
+
+        if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
     }
     private async Task<SimplerRowsDto> GetUsedRangeForGlossary(SpreadsheetFileRequest spreadsheetFileRequest, SheetRequest sheetRequest)
     {
