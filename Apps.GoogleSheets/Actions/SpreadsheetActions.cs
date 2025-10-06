@@ -8,6 +8,7 @@ using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Exceptions;
+using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Converters;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
@@ -718,6 +719,10 @@ public class SpreadsheetActions : BaseInvocable
         }
 
         await using var glossaryStream = await _fileManagementClient.DownloadAsync(glossary.Glossary);
+
+        await ValidateTbxOrThrow(glossaryStream, glossary.Glossary);
+        if (glossaryStream.CanSeek) glossaryStream.Seek(0, SeekOrigin.Begin);
+
         var blackbirdGlossary = await glossaryStream.ConvertFromTBX();
         
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
@@ -957,6 +962,29 @@ public class SpreadsheetActions : BaseInvocable
         return new() { Glossary = glossaryFileReference };
     }
 
+    private static async Task ValidateTbxOrThrow(Stream stream, FileReference file)
+    {
+        if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        ms.Position = 0;
+
+        using var sr = new StreamReader(ms, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
+        var buf = new char[4096];
+        var n = await sr.ReadAsync(buf, 0, buf.Length);
+        var head = new string(buf, 0, Math.Max(0, n)).TrimStart();
+
+        if (string.IsNullOrWhiteSpace(head) || head[0] != '<')
+            throw new PluginMisconfigurationException("Invalid file format: expected TBX.");
+
+        if (head.IndexOf("<tbx", StringComparison.OrdinalIgnoreCase) < 0)
+            throw new PluginMisconfigurationException("Invalid TBX: missing <tbx> root element.");
+
+        if (head.IndexOf("urn:iso:std:iso:30042", StringComparison.OrdinalIgnoreCase) < 0)
+            throw new PluginMisconfigurationException("Invalid TBX: required TBX namespace not found.");
+
+        if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
+    }
     private async Task<SimplerRowsDto> GetUsedRangeForGlossary(SpreadsheetFileRequest spreadsheetFileRequest, SheetRequest sheetRequest)
     {
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
