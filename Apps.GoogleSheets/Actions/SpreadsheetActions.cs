@@ -442,22 +442,31 @@ public class SpreadsheetActions : BaseInvocable
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
             if (result != null)
             {
-                rows = result.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList();
+                rows = result.Select(r => r?.Select(c => c?.ToString() ?? string.Empty).ToList() ?? new List<string>()).ToList();
             }
         }
         else
         {
             var usedRange = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>GetUsedRange(spreadsheetFileRequest, sheetRequest));
-            rows = usedRange.Rows.Select(x => x.Values).ToList();
+            if (usedRange?.Rows != null)
+            {
+                rows = usedRange.Rows.Where(r => r != null).Select(r => r!.Values ?? new List<string>()).ToList();
+            }
         }
 
-        var columnCount = rows.Select(x => x.Count()).ToList().Max();
-        foreach (var row in rows)
+        var columnCount = rows.Any() ? rows.Max(x => x?.Count ?? 0) : 0;
+        if (rows.Any())
         {
-            var columnsToAdd = columnCount - row.Count();
-            for (int i = 0; i < columnsToAdd; i++)
+            foreach (var row in rows)
             {
-                row.Add(string.Empty);
+                var current = row?.Count ?? 0;
+                var toAdd = columnCount - current;
+                if (toAdd > 0)
+                {
+                    if (row == null)
+                        continue;
+                    for (int i = 0; i < toAdd; i++) row.Add(string.Empty);
+                }
             }
         }
 
