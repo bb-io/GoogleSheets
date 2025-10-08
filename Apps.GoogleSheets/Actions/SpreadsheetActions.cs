@@ -732,7 +732,7 @@ public class SpreadsheetActions : BaseInvocable
         await ValidateTbxOrThrow(glossaryStream, glossary.Glossary);
         if (glossaryStream.CanSeek) glossaryStream.Seek(0, SeekOrigin.Begin);
 
-        var blackbirdGlossary = await glossaryStream.ConvertFromTBX();
+        var blackbirdGlossary = await glossaryStream.ConvertFromTbx();
         
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
         var sheetTitle = blackbirdGlossary.Title ?? Path.GetFileNameWithoutExtension(glossary.Glossary.Name)!;
@@ -965,7 +965,7 @@ public class SpreadsheetActions : BaseInvocable
                                 $"Glossary export from Google Sheets on {DateTime.Now.ToLocalTime().ToString("F")}"
         };
 
-        await using var glossaryStream = glossary.ConvertToTBX();
+        await using var glossaryStream = glossary.ConvertToTbx();
         var glossaryFileReference = 
             await _fileManagementClient.UploadAsync(glossaryStream, MediaTypeNames.Text.Xml, $"{title}.tbx");
         return new() { Glossary = glossaryFileReference };

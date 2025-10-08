@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <Product>Google Sheets</Product>
     <Description>Create and edit online spreadsheets. Get insights together with secure sharing in real-time and from any device</Description>
-    <Version>1.4.29</Version>
+    <Version>1.4.30</Version>
     <AssemblyName>Apps.GoogleSheets</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
@@ -14,9 +14,9 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Blackbird.Applications.Sdk.Common" Version="2.11.1" />
+    <PackageReference Include="Blackbird.Applications.SDK.Blueprints" Version="1.0.0-rc.10308" />
     <PackageReference Include="Blackbird.Applications.SDK.Extensions.FileManagement" Version="1.0.1" />
-    <PackageReference Include="Blackbird.Applications.Sdk.Glossaries.Utils" Version="1.0.0-alpha11" />
+    <PackageReference Include="Blackbird.Applications.Sdk.Glossaries.Utils" Version="1.0.1" />
     <PackageReference Include="CsvHelper" Version="33.0.1" />
     <PackageReference Include="Google.Apis.Drive.v3" Version="1.61.0.3155" />
     <PackageReference Include="Google.Apis.Sheets.v4" Version="1.60.0.2979" />
