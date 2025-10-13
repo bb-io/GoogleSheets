@@ -191,14 +191,14 @@ public class SpreadsheetActions : BaseInvocable
                     Properties = new SheetProperties { Title = input.InitialSheetName }
                 }
             };
-                }
+        }
 
         var created = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
             await sheets.Spreadsheets.Create(spreadsheet).ExecuteAsync());
 
         if (!string.IsNullOrEmpty(input.FolderId))
         {
-            await MoveSpreadsheet(created, input.FolderId);
+            await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await MoveSpreadsheet(created, input.FolderId));
         }
 
         return new SpreadsheetDto
