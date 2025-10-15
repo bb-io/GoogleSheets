@@ -1088,10 +1088,12 @@ public class SpreadsheetActions : BaseInvocable
             new Google.Apis.Drive.v3.Data.File(),
             spreadsheetId
         );
+        
         updateRequest.AddParents = folderId;
         updateRequest.RemoveParents = previousParents;
         updateRequest.Fields = "id, parents";
-
+        updateRequest.SupportsAllDrives = true;
+        
         await updateRequest.ExecuteAsync();
     }
 
