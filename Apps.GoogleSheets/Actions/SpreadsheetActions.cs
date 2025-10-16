@@ -624,13 +624,16 @@ public class SpreadsheetActions : BaseInvocable
     public async Task<List<SpreadsheetDto>> SearchSpreadsheets([ActionParameter] GetSpreadsheetsRequest request)
     {
         var driveClient = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
-        string query = $"mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = {request.FetchDeleted ?? false}"; 
+        // Search for .gsheet and .xlsx files
+        string query = $"(mimeType='application/vnd.google-apps.spreadsheet' or mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') and trashed={request.FetchDeleted?.ToString().ToLower() ?? "false"}"; 
+
         if (!string.IsNullOrEmpty(request.FolderId))
             query += $" and '{request.FolderId}' in parents";
 
         var driveRequest = driveClient.Files.List();
         driveRequest.Q = query;
         driveRequest.Fields = "files(id, name, webViewLink)";
+        driveRequest.SupportsAllDrives = true;
 
         var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await driveRequest.ExecuteAsync());
         var spreadsheets = result.Files.Select(f => new SpreadsheetDto { Id = f.Id, Title = f.Name, Url = f.WebViewLink }).ToList();
