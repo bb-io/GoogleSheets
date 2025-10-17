@@ -1,10 +1,5 @@
 ﻿using Blackbird.Applications.Sdk.Common.Exceptions;
 using Google;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Apps.GoogleSheets.Utils
 {
@@ -19,6 +14,16 @@ namespace Apps.GoogleSheets.Utils
             catch (GoogleApiException ex)
             {
                 throw new PluginMisconfigurationException($"Error: status {ex.HttpStatusCode}, {ex.Message}. Please check your inputs and try again");
+            }
+            catch (IndexOutOfRangeException ex)
+            {
+                throw new PluginApplicationException(
+                    "Index was out of range. The requested range or returned data is outside the expected bounds.", ex);
+            }
+            catch (ArgumentOutOfRangeException ex)
+            {
+                throw new PluginApplicationException(
+                    "Argument was out of range. The requested range or parameters are invalid for the current sheet.", ex);
             }
             catch (Exception ex)
             {
@@ -35,6 +40,16 @@ namespace Apps.GoogleSheets.Utils
             catch (GoogleApiException ex)
             {
                 throw new PluginMisconfigurationException($"Error: status {ex.HttpStatusCode}, {ex.Message}. Please check your inputs and try again");
+            }
+            catch (IndexOutOfRangeException ex)
+            {
+                throw new PluginApplicationException(
+                    "Index was out of range. The requested range or returned data is outside the expected bounds.", ex);
+            }
+            catch (ArgumentOutOfRangeException ex)
+            {
+                throw new PluginApplicationException(
+                    "Argument was out of range. The requested range or parameters are invalid for the current sheet.", ex);
             }
             catch (Exception ex)
             {

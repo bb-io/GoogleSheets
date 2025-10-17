@@ -190,4 +190,21 @@ public class SpreadsheetTests : TestBase
 
         Assert.IsTrue(true);
     }
+
+    [TestMethod]
+    public async Task Get_Sheet_Cell_ReturnsSuccess()
+    {
+        var action = new SpreadsheetActions(InvocationContext, FileManager);
+
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "" };
+        var spreadSheet = new SheetRequest { SheetName = "" };
+        var rangeRequest = new GetCellRequest { Column="A", Row="1" };
+
+        var result = await action.GetCell(spreadsheetFileRequest, spreadSheet, rangeRequest);
+
+        var json = Newtonsoft.Json.JsonConvert.SerializeObject(result);
+        Console.WriteLine(json);
+
+        Assert.IsNotNull(result);
+    }
 }

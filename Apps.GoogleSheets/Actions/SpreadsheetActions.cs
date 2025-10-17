@@ -15,6 +15,7 @@ using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Google;
 using Google.Apis.Sheets.v4.Data;
 using System.Globalization;
 using System.Net.Mime;
@@ -42,15 +43,37 @@ public class SpreadsheetActions : BaseInvocable
         [ActionParameter] SheetRequest sheetRequest,
         [ActionParameter] GetCellRequest input)
     {
+        if (string.IsNullOrWhiteSpace(spreadsheetFileRequest?.SpreadSheetId))
+            throw new PluginMisconfigurationException("Spreadsheet ID cannot be empty.");
+
+        if (string.IsNullOrWhiteSpace(sheetRequest?.SheetName))
+            throw new PluginMisconfigurationException("Sheet title cannot be empty.");
+
+        if (string.IsNullOrWhiteSpace(input?.Column))
+            throw new PluginMisconfigurationException("Column cannot be empty.");
+
+        if (!Regex.IsMatch(input.Column, @"^[A-Za-z]+$"))
+            throw new PluginMisconfigurationException("Column must contain only letters, e.g., A, B, AA.");
+
+        var rowNumber = ParseRow(input.Row);
+        if (rowNumber <= 0)
+            throw new PluginMisconfigurationException("Row must be a positive number (e.g., 1, 2, 3).");
+
+        var a1 = $"{input.Column.ToUpperInvariant()}{rowNumber}";
+
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
-        var sheetValues = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await GetSheetValues(client,
-            spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column}{ParseRow(input.Row)}", $"{input.Column}{ParseRow(input.Row)}"));
-        if (sheetValues is null || String.IsNullOrEmpty(sheetValues[0][0]?.ToString())) 
-        {
+        var sheetValues = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
+            await GetSheetValues(client, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, a1, a1));
+
+        if (sheetValues is null || sheetValues.Count == 0)
             return new CellDto { Value = string.Empty };
-        }
-        return new CellDto { Value = sheetValues[0][0]?.ToString() ?? string.Empty };
+
+        var row = sheetValues[0];
+        if (row is null || row.Count == 0)
+            return new CellDto { Value = string.Empty };
+
+        return new CellDto { Value = row[0]?.ToString() ?? string.Empty };
     }
 
     [Action("Update sheet cell", Description = "Update cell by address")]
