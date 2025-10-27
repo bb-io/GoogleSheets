@@ -168,7 +168,7 @@ public class SpreadsheetTests : TestBase
     {
         // Arrange
         var actions = new SpreadsheetActions(InvocationContext, FileManager);
-        var request = new GetSpreadsheetsRequest { FolderId = "1RaFCHuL42HAz7RF1GxyB7M5GZcxE49Ro" };
+        var request = new GetSpreadsheetsRequest { FolderId = "1-2eaBDlwP-8MbgLqlKnSWCl8RJe3vTEU" };
 
         // Act
         var result = await actions.SearchSpreadsheets(request);
@@ -178,6 +178,8 @@ public class SpreadsheetTests : TestBase
         {
             Console.WriteLine($"{item.Id} - {item.Title} - {item.Url}");
         }
+        var json = Newtonsoft.Json.JsonConvert.SerializeObject(result);
+        Console.WriteLine(json);
         Assert.IsNotNull(result);
     }
 
@@ -198,7 +200,7 @@ public class SpreadsheetTests : TestBase
 
         var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "" };
         var spreadSheet = new SheetRequest { SheetName = "" };
-        var rangeRequest = new GetCellRequest { Column="A", Row="1" };
+        var rangeRequest = new GetCellRequest { Column="D", Row="25" };
 
         var result = await action.GetCell(spreadsheetFileRequest, spreadSheet, rangeRequest);
 

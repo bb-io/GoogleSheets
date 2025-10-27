@@ -648,19 +648,82 @@ public class SpreadsheetActions : BaseInvocable
     {
         var driveClient = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
         // Search for .gsheet and .xlsx files
-        string query = $"(mimeType='application/vnd.google-apps.spreadsheet' or mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') and trashed={request.FetchDeleted?.ToString().ToLower() ?? "false"}"; 
+        var trashed = request.FetchDeleted?.ToString().ToLower() ?? "false";
+        var query = $"(mimeType='application/vnd.google-apps.spreadsheet' " +
+                    $"or mimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' " +
+                    $"or (mimeType='application/vnd.google-apps.shortcut' and " +
+                    $"    (shortcutDetails.targetMimeType='application/vnd.google-apps.spreadsheet' " +
+                    $"     or shortcutDetails.targetMimeType='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'))) " +
+                    $"and trashed={trashed}";
 
         if (!string.IsNullOrEmpty(request.FolderId))
             query += $" and '{request.FolderId}' in parents";
 
-        var driveRequest = driveClient.Files.List();
-        driveRequest.Q = query;
-        driveRequest.Fields = "files(id, name, webViewLink)";
-        driveRequest.SupportsAllDrives = true;
+        var spreadsheets = new List<SpreadsheetDto>();
+        string? pageToken = null;
 
-        var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await driveRequest.ExecuteAsync());
-        var spreadsheets = result.Files.Select(f => new SpreadsheetDto { Id = f.Id, Title = f.Name, Url = f.WebViewLink }).ToList();
-        return spreadsheets;
+        do
+        {
+            var listReq = driveClient.Files.List();
+            listReq.Q = query;
+            listReq.Fields =
+                "nextPageToken, files(id, name, mimeType, webViewLink, parents, shortcutDetails/targetId, shortcutDetails/targetMimeType)";
+            listReq.PageSize = 1000;
+
+            listReq.SupportsAllDrives = true;
+            listReq.IncludeItemsFromAllDrives = true;
+            listReq.Corpora = "allDrives";
+            listReq.Spaces = "drive";
+
+            if (!string.IsNullOrEmpty(pageToken))
+                listReq.PageToken = pageToken;
+
+            var res = await ErrorHandler.ExecuteWithErrorHandlingAsync(listReq.ExecuteAsync);
+
+            foreach (var f in res.Files)
+            {
+                if (f.MimeType == "application/vnd.google-apps.shortcut" &&
+                    !string.IsNullOrEmpty(f.ShortcutDetails?.TargetId))
+                {
+                    var getReq = driveClient.Files.Get(f.ShortcutDetails.TargetId);
+                    getReq.Fields = "id, name, mimeType, webViewLink";
+                    getReq.SupportsAllDrives = true;
+
+                    var target = await ErrorHandler.ExecuteWithErrorHandlingAsync(getReq.ExecuteAsync);
+                    if (target is not null &&
+                        (target.MimeType == "application/vnd.google-apps.spreadsheet" ||
+                         target.MimeType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    {
+                        spreadsheets.Add(new SpreadsheetDto
+                        {
+                            Id = target.Id,
+                            Title = target.Name,
+                            Url = target.WebViewLink
+                        });
+                    }
+
+                    continue;
+                }
+
+                if (f.MimeType == "application/vnd.google-apps.spreadsheet" ||
+                    f.MimeType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                {
+                    spreadsheets.Add(new SpreadsheetDto
+                    {
+                        Id = f.Id,
+                        Title = f.Name,
+                        Url = f.WebViewLink
+                    });
+                }
+            }
+
+            pageToken = res.NextPageToken;
+        } while (!string.IsNullOrEmpty(pageToken));
+
+        return spreadsheets
+            .GroupBy(x => x.Id)
+            .Select(g => g.First())
+            .ToList();
     }
 
     [Action("Delete sheet", Description = "Delete a sheet within a spreadsheet")]
