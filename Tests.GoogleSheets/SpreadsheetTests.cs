@@ -198,8 +198,8 @@ public class SpreadsheetTests : TestBase
     {
         var action = new SpreadsheetActions(InvocationContext, FileManager);
 
-        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "1QbKkamdoX64nB9NV7xgELR5ExXHp1CVEdMjdF-tbg5g" };
-        var spreadSheet = new SheetRequest { SheetName = "Disney+_Web_SUF_Billing (Promo)" };
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "" };
+        var spreadSheet = new SheetRequest { SheetName = "" };
         var rangeRequest = new GetCellRequest { Column="D", Row="25" };
 
         var result = await action.GetCell(spreadsheetFileRequest, spreadSheet, rangeRequest);
