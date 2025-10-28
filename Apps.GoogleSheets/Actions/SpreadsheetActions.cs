@@ -524,30 +524,70 @@ public class SpreadsheetActions : BaseInvocable
         if (string.IsNullOrWhiteSpace(spreadsheetFileRequest.SpreadSheetId))
             throw new PluginMisconfigurationException("Spreadsheet ID can not be null or empty. Please check your input and try again");
 
+        var drive = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
 
-        var client = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
-        var metadata = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
-        if (input.Format == "PDF")
+        async Task<Google.Apis.Drive.v3.Data.File> GetMetaAsync(string id)
         {
-            var fileStream = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files
-                .Export(spreadsheetFileRequest.SpreadSheetId, MediaTypeNames.Application.Pdf).ExecuteAsStreamAsync());
-            return new()
-            {
-                File = await _fileManagementClient.UploadAsync(fileStream, MediaTypeNames.Application.Pdf,
-                    $"{metadata.Name}.pdf")
-            };
-        } else if (input.Format == "XLSX")
+            var get = drive.Files.Get(id);
+            get.Fields = "id,name,mimeType,webViewLink,shortcutDetails/targetId,shortcutDetails/targetMimeType";
+            get.SupportsAllDrives = true;
+            return await ErrorHandler.ExecuteWithErrorHandlingAsync(get.ExecuteAsync);
+        }
+
+        var meta = await GetMetaAsync(spreadsheetFileRequest.SpreadSheetId);
+
+        if (meta.MimeType == "application/vnd.google-apps.shortcut")
         {
-            var fileStream = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Files
-                .Export(spreadsheetFileRequest.SpreadSheetId, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet").ExecuteAsStreamAsync());
-            return new()
+            var targetId = meta.ShortcutDetails?.TargetId;
+            if (string.IsNullOrEmpty(targetId))
+                throw new PluginMisconfigurationException("The provided file is a shortcut but has no target. Please check the file.");
+            meta = await GetMetaAsync(targetId);
+        }
+
+        var wantPdf = string.Equals(input.Format, "PDF", StringComparison.OrdinalIgnoreCase);
+        var wantXlsx = string.Equals(input.Format, "XLSX", StringComparison.OrdinalIgnoreCase);
+        if (!wantPdf && !wantXlsx)
+            throw new PluginMisconfigurationException("File format must be PDF or XLSX.");
+
+        if (meta.MimeType == "application/vnd.google-apps.spreadsheet")
+        {
+            var exportMime = wantPdf
+                ? System.Net.Mime.MediaTypeNames.Application.Pdf
+                : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+            var export = drive.Files.Export(meta.Id, exportMime);
+            var stream = await ErrorHandler.ExecuteWithErrorHandlingAsync(export.ExecuteAsStreamAsync);
+
+            var fileName = wantPdf ? $"{meta.Name}.pdf" : $"{meta.Name}.xlsx";
+            return new FileResponse
             {
-                File = await _fileManagementClient.UploadAsync(fileStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    $"{metadata.Name}.xlsx")
+                File = await _fileManagementClient.UploadAsync(stream, exportMime, fileName)
             };
         }
 
-        throw new PluginMisconfigurationException("File format must be PDF or XLSX.");
+        if (meta.MimeType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        {
+            if (wantPdf)
+                throw new PluginMisconfigurationException("Can't export an XLSX file to PDF via Drive export. Convert it to Google Sheets first or choose XLSX.");
+
+            var get = drive.Files.Get(meta.Id);
+            get.SupportsAllDrives = true;
+            get.AcknowledgeAbuse = true;
+
+            using var mem = new MemoryStream();
+            await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await get.DownloadAsync(mem));
+            mem.Position = 0;
+
+            return new FileResponse
+            {
+                File = await _fileManagementClient.UploadAsync(
+                    mem,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"{meta.Name}.xlsx")
+            };
+        }
+
+        throw new PluginMisconfigurationException($"Unsupported file type: {meta.MimeType}. Allowed: Google Sheets or XLSX.");
     }
 
     [Action("Paste into existing sheet from XLSX file", Description = "Append XLSX spreadsheet content into existing sheet")]
