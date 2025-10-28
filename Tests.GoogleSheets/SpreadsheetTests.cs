@@ -61,6 +61,19 @@ public class SpreadsheetTests : TestBase
     }
 
     [TestMethod]
+    public async Task Downloadspreadsheet_ReturnsSuccess()
+    {
+        var action = new SpreadsheetActions(InvocationContext, FileManager);
+
+        //var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "1hmd2aSkwnw6lxeJS_4QnWifJ98AGY1ocZVf6K7NOxKI" };
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
+        var fileFormat = new FileFormatRequest { Format = "XLSX" };
+        var result = await action.DownloadSpreadsheet(spreadsheetFileRequest, fileFormat);
+
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
     public async Task ImportCsv_with_range_ReturnsSuccess()
     {
         var action = new SpreadsheetActions(InvocationContext, FileManager);
