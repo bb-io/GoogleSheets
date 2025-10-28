@@ -147,6 +147,31 @@ public class SpreadsheetActions : BaseInvocable
         return await ErrorHandler.ExecuteWithErrorHandlingAsync(() => UpdateRow(spreadsheetFileRequest, sheetRequest, new UpdateRowRequest { Row = insertRowRequest.Row, CellAddress = startColumn + newRowIndex }));
     }
 
+    [Action("Clear sheet range", Description = "Clear the values of all cells within a specified range.")]
+    public async Task ClearRange(
+    [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+    [ActionParameter] SheetRequest sheetRequest,
+    [ActionParameter] ClearRangeRequest input)
+    {
+        if (string.IsNullOrWhiteSpace(spreadsheetFileRequest?.SpreadSheetId))
+            throw new PluginMisconfigurationException("Spreadsheet ID cannot be empty.");
+
+        if (string.IsNullOrWhiteSpace(sheetRequest?.SheetName))
+            throw new PluginMisconfigurationException("Sheet title cannot be empty.");
+
+        if (string.IsNullOrWhiteSpace(input?.Range))
+            throw new PluginMisconfigurationException("Range cannot be empty.");
+
+        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+
+        await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
+            await client.Spreadsheets.Values.Clear(
+                new ClearValuesRequest(),
+                spreadsheetFileRequest.SpreadSheetId,
+                $"{sheetRequest.SheetName}!{input.Range}"
+            ).ExecuteAsync());
+    }
+
     [Action("Update sheet row", Description = "Update row by start address")]
     public async Task<RowDto> UpdateRow(
         [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
