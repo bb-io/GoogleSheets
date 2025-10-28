@@ -147,7 +147,7 @@ public class SpreadsheetActions : BaseInvocable
         return await ErrorHandler.ExecuteWithErrorHandlingAsync(() => UpdateRow(spreadsheetFileRequest, sheetRequest, new UpdateRowRequest { Row = insertRowRequest.Row, CellAddress = startColumn + newRowIndex }));
     }
 
-    [Action("Clear sheet range", Description = "Clear the values of all cells within a specified range.")]
+    [Action("Clear sheet range", Description = "Clears the values of all cells within a specified range.")]
     public async Task ClearRange(
     [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
     [ActionParameter] SheetRequest sheetRequest,
