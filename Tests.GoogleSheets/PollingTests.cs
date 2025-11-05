@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Apps.GoogleSheets.Models.Requests;
 using Apps.GoogleSheets.Polling;
 using Apps.GoogleSheets.Polling.Models;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Polling;
 using Tests.GoogleSheets.Base;
 
@@ -60,6 +61,32 @@ namespace Tests.GoogleSheets
             }
 
             Assert.IsNotNull(response, "Response is null.");
+        }
+
+        [TestMethod]
+        public async Task OnNewRowsAdded_NonExistingSpreadsheet_ThrowsMisconfigException()
+        {
+            // Arrange
+            var actions = new GoogleSheetsPollingList(InvocationContext);
+            var spreadId = new SpreadsheetFileRequest { SpreadSheetId = "nonexisting" };
+            var spreadName = new SheetRequest { SheetName = "Стальна шерсть" };
+
+            var pollingRequest = new PollingEventRequest<NewRowAddedMemory>
+            {
+                Memory = new NewRowAddedMemory
+                {
+                    LastRowCount = 6,
+                    LastPollingTime = DateTime.UtcNow,
+                    Triggered = false
+                }
+            };
+            // Act
+            var ex = await Assert.ThrowsExceptionAsync<PluginMisconfigurationException>(async () => 
+                await actions.OnNewRowsAdded(pollingRequest, spreadId, spreadName)
+            );
+
+            // Assert
+            StringAssert.Contains(ex.Message, "was not found");
         }
     }
 }

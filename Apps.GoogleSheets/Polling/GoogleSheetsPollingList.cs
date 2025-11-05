@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Apps.GoogleSheets.Models.Requests;
+﻿using Apps.GoogleSheets.Models.Requests;
 using Apps.GoogleSheets.Polling.Models;
+using Apps.GoogleSheets.Utils;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Common.Polling;
-using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 
 namespace Apps.GoogleSheets.Polling
 {
@@ -24,7 +19,7 @@ namespace Apps.GoogleSheets.Polling
             var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
             var valuesRequest = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
-            var valuesResponse = await valuesRequest.ExecuteAsync();
+            var valuesResponse = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await valuesRequest.ExecuteAsync());
 
             int currentRowCount = (valuesResponse.Values != null) ? valuesResponse.Values.Count : 0;
             if (request.Memory == null)
