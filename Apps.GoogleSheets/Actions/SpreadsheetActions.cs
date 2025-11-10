@@ -15,7 +15,6 @@ using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using CsvHelper;
 using CsvHelper.Configuration;
-using Google;
 using Google.Apis.Sheets.v4.Data;
 using System.Globalization;
 using System.Net.Mime;
@@ -34,7 +33,7 @@ public class SpreadsheetActions : BaseInvocable
     {
         _fileManagementClient = fileManagementClient;
     }
-    
+
     #region Actions
 
     [Action("Get sheet cell", Description = "Get cell by address")]
@@ -117,7 +116,7 @@ public class SpreadsheetActions : BaseInvocable
 
         var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await GetSheetValues(client,
             spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column1}{ParseRow(input.RowIndex)}", $"{input.Column2}{ParseRow(input.RowIndex)}"));
-        if (result is null )
+        if (result is null)
         { return new RowDto { Row = new List<string>() }; }
 
         return new RowDto { Row = result.FirstOrDefault()?.Select(x => x?.ToString() ?? string.Empty)?.ToList() ?? new List<string>() };
@@ -141,7 +140,7 @@ public class SpreadsheetActions : BaseInvocable
 
         var range = await ErrorHandler.ExecuteWithErrorHandlingAsync(() => GetUsedRange(spreadsheetFileRequest, sheetRequest));
         int newRowIndex;
-        if (range != null && range?.Rows != null ) { newRowIndex = range.Rows.Count + 1; }
+        if (range != null && range?.Rows != null) { newRowIndex = range.Rows.Count + 1; }
         else { newRowIndex = 1; }
         var startColumn = insertRowRequest.ColumnAddress ?? "A";
         return await ErrorHandler.ExecuteWithErrorHandlingAsync(() => UpdateRow(spreadsheetFileRequest, sheetRequest, new UpdateRowRequest { Row = insertRowRequest.Row, CellAddress = startColumn + newRowIndex }));
@@ -213,7 +212,7 @@ public class SpreadsheetActions : BaseInvocable
                     }
                 }
             }, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
-        
+
         return new(response.Replies[0].AddSheet.Properties);
     }
 
@@ -269,8 +268,11 @@ public class SpreadsheetActions : BaseInvocable
         {
             var rangeIDs = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => GetIdsRange(1, result.Values.Count));
             var rows = result?.Values?.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList();
-            return new RowsDto() { Rows = rangeIDs.Zip(rows, (id, rowvalues) => new _row { RowId = id, Values = rowvalues }).ToList(),
-            RowsCount = (double)result?.Values?.Count}; 
+            return new RowsDto()
+            {
+                Rows = rangeIDs.Zip(rows, (id, rowvalues) => new _row { RowId = id, Values = rowvalues }).ToList(),
+                RowsCount = (double)result?.Values?.Count
+            };
         }
         else return new RowsDto() { };
     }
@@ -296,7 +298,7 @@ public class SpreadsheetActions : BaseInvocable
             spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
         if (result == null)
         {
-            return new RowsDto { Rows = new List<_row>(), RowsCount = 0};
+            return new RowsDto { Rows = new List<_row>(), RowsCount = 0 };
         }
         var (startColumn, startRow) = rangeRequest.StartCell.ToExcelColumnAndRow();
         var (endColumn, endRow) = rangeRequest.EndCell.ToExcelColumnAndRow();
@@ -316,17 +318,17 @@ public class SpreadsheetActions : BaseInvocable
         [ActionParameter] GetColumnRequest columnRequest)
     {
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-        var result = await  GetSheetValues(client,
+        var result = await GetSheetValues(client,
             spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{columnRequest.Column}{ParseRow(columnRequest.StartRow)}", $"{columnRequest.Column}{ParseRow(columnRequest.EndRow)}");
         if (result is null)
         {
-            return new ColumnDto { Column = new List<string>() };            
+            return new ColumnDto { Column = new List<string>() };
         }
         return new ColumnDto() { Column = result.Select(x => x.FirstOrDefault()?.ToString() ?? string.Empty).ToList() };
     }
 
     [Action("Find sheet column", Description = "Providing a row index and a cell value, return column position (letter) where said value is located")]
-    public async Task<string?> FindColumn(
+    public async Task<ColumnResponse> FindColumn(
         [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
         [ActionParameter] SheetRequest sheetRequest,
         [ActionParameter] FindColumnRequest input)
@@ -364,7 +366,7 @@ public class SpreadsheetActions : BaseInvocable
             return null;
 
         var columnLetter = (colIndex + 1).ToExcelColumnAddress();
-        return columnLetter;
+        return new ColumnResponse { Column = columnLetter };
     }
 
     [Action("Update sheet column", Description = "Update column by start address")]
@@ -412,7 +414,7 @@ public class SpreadsheetActions : BaseInvocable
         index = index + 1;
         return index == 0 ? null : index;
     }
-    
+
     private int ColumnLetterToNumber(string column)
     {
         int sum = 0;
@@ -422,7 +424,7 @@ public class SpreadsheetActions : BaseInvocable
         }
         return sum;
     }
-   
+
     [Action("Import CSV (Append)", Description = "Import CSV file into Google Sheets")]
     public async Task<SheetDto> ImportCSVAppend(
         [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
@@ -498,7 +500,7 @@ public class SpreadsheetActions : BaseInvocable
 
         return new SheetDto(sheet);
     }
-       
+
     private CsvConfiguration CreateConfiguration(CsvOptions csvOptions)
     {
         var config = new CsvConfiguration(CultureInfo.InvariantCulture);
@@ -537,7 +539,7 @@ public class SpreadsheetActions : BaseInvocable
         }
         else
         {
-            var usedRange = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>GetUsedRange(spreadsheetFileRequest, sheetRequest));
+            var usedRange = await ErrorHandler.ExecuteWithErrorHandlingAsync(() => GetUsedRange(spreadsheetFileRequest, sheetRequest));
             if (usedRange?.Rows != null)
             {
                 rows = usedRange.Rows.Where(r => r != null).Select(r => r!.Values ?? new List<string>()).ToList();
@@ -746,8 +748,11 @@ public class SpreadsheetActions : BaseInvocable
         };
 
         await gsheetClient.Spreadsheets.BatchUpdate(batchUpdate, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
-        await gsheetClient.Spreadsheets.BatchUpdate( new BatchUpdateSpreadsheetRequest {Requests = new List<Request>{
-         new Request { DeleteSheet = new DeleteSheetRequest { SheetId = copiedSheetId}}}}, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+        await gsheetClient.Spreadsheets.BatchUpdate(new BatchUpdateSpreadsheetRequest
+        {
+            Requests = new List<Request>{
+         new Request { DeleteSheet = new DeleteSheetRequest { SheetId = copiedSheetId}}}
+        }, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
     }
 
     [Action("Search spreadsheets", Description = "Search all spreadsheets")]
@@ -834,7 +839,7 @@ public class SpreadsheetActions : BaseInvocable
     }
 
     [Action("Delete sheet", Description = "Delete a sheet within a spreadsheet")]
-    public async Task DeleteSheet([ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,[ActionParameter] SheetRequest sheetRequest)
+    public async Task DeleteSheet([ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest, [ActionParameter] SheetRequest sheetRequest)
     {
         if (string.IsNullOrWhiteSpace(spreadsheetFileRequest.SpreadSheetId))
             throw new PluginMisconfigurationException("Spreadsheet ID cannot be empty. Please check your input and try again.");
@@ -887,8 +892,8 @@ public class SpreadsheetActions : BaseInvocable
     public async Task<SheetDto> ImportGlossary(
         [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
         [ActionParameter] GlossaryWrapper glossary,
-        [ActionParameter] [Display("Overwrite existing sheet", 
-            Description = "Overwrite an existing sheet if it has the same title as the glossary.")] 
+        [ActionParameter] [Display("Overwrite existing sheet",
+            Description = "Overwrite an existing sheet if it has the same title as the glossary.")]
         bool? overwriteSheet)
     {
         static string? GetColumnValue(string columnName, GlossaryConceptEntry entry, string languageCode)
@@ -912,7 +917,7 @@ public class SpreadsheetActions : BaseInvocable
                         term.Notes == null ? string.Empty : term.Term + ": " + string.Join(';', term.Notes));
                     return string.Join(";; ", notes.Where(note => note != string.Empty));
                 }
-                
+
                 return null;
             }
 
@@ -929,13 +934,13 @@ public class SpreadsheetActions : BaseInvocable
         if (glossaryStream.CanSeek) glossaryStream.Seek(0, SeekOrigin.Begin);
 
         var blackbirdGlossary = await glossaryStream.ConvertFromTbx();
-        
+
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
         var sheetTitle = blackbirdGlossary.Title ?? Path.GetFileNameWithoutExtension(glossary.Glossary.Name)!;
 
         var spreadsheet = await client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
         var sheet = spreadsheet.Sheets.FirstOrDefault(sheet => sheet.Properties.Title == sheetTitle)?.Properties;
-        
+
         if (sheet != null && (overwriteSheet == null || overwriteSheet.Value == false))
             sheetTitle += $" {DateTime.Now.ToString("g")}";
 
@@ -959,7 +964,7 @@ public class SpreadsheetActions : BaseInvocable
             await client.Spreadsheets.Values
                 .Clear(new ClearValuesRequest(), spreadsheetFileRequest.SpreadSheetId, sheetTitle).ExecuteAsync();
         }
-        
+
         var languagesPresent = blackbirdGlossary.ConceptEntries
             .SelectMany(entry => entry.LanguageSections)
             .Select(section => section.LanguageCode)
@@ -985,8 +990,8 @@ public class SpreadsheetActions : BaseInvocable
 
             rowsToAdd.Add(new List<object>(new[]
             {
-                string.IsNullOrWhiteSpace(entry.Id) ? Guid.NewGuid().ToString() : entry.Id, 
-                entry.Definition ?? "", 
+                string.IsNullOrWhiteSpace(entry.Id) ? Guid.NewGuid().ToString() : entry.Id,
+                entry.Definition ?? "",
                 entry.SubjectField ?? "",
                 string.Join(';', entry.Notes ?? Enumerable.Empty<string>())
             }.Concat(languageRelatedValues)));
@@ -1011,7 +1016,7 @@ public class SpreadsheetActions : BaseInvocable
     public async Task<GlossaryWrapper> ExportGlossary(
         [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
         [ActionParameter] SheetRequest sheetRequest,
-        [ActionParameter] [Display("Title")] string? title,
+        [ActionParameter][Display("Title")] string? title,
         [ActionParameter] [Display("Source description")]
         string? sourceDescription)
     {
@@ -1100,7 +1105,7 @@ public class SpreadsheetActions : BaseInvocable
                                 .Value;
                             var targetLanguageSectionIndex =
                                 languageSections.FindIndex(section => section.LanguageCode == languageCode);
-                            
+
                             var terms = columnValues[i]
                                 .Split(';')
                                 .Select(term => new GlossaryTermSection(term.Trim()));
@@ -1162,7 +1167,7 @@ public class SpreadsheetActions : BaseInvocable
         };
 
         await using var glossaryStream = glossary.ConvertToTbx();
-        var glossaryFileReference = 
+        var glossaryFileReference =
             await _fileManagementClient.UploadAsync(glossaryStream, MediaTypeNames.Text.Xml, $"{title}.tbx");
         return new() { Glossary = glossaryFileReference };
     }
@@ -1197,7 +1202,7 @@ public class SpreadsheetActions : BaseInvocable
         var result = await request.ExecuteAsync();
         if (result != null && result?.Values != null)
         {
-            return new SimplerRowsDto() {Rows = result?.Values?.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList()};
+            return new SimplerRowsDto() { Rows = result?.Values?.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList() };
         }
         else return new SimplerRowsDto() { };
     }
@@ -1240,7 +1245,7 @@ public class SpreadsheetActions : BaseInvocable
 
         var expandLength = rowNumber - rowCount;
 
-        if(expandLength > 0)
+        if (expandLength > 0)
         {
             var expandRequest = client.Spreadsheets.BatchUpdate(new BatchUpdateSpreadsheetRequest()
             {
@@ -1268,7 +1273,7 @@ public class SpreadsheetActions : BaseInvocable
             return value;
         }
         throw new PluginMisconfigurationException("The row value should be a number, e.g. 1");
-    }     
+    }
 
     private async Task MoveSpreadsheet(Spreadsheet spreadsheet, string folderId)
     {
@@ -1284,12 +1289,12 @@ public class SpreadsheetActions : BaseInvocable
             new Google.Apis.Drive.v3.Data.File(),
             spreadsheetId
         );
-        
+
         updateRequest.AddParents = folderId;
         updateRequest.RemoveParents = previousParents;
         updateRequest.Fields = "id, parents";
         updateRequest.SupportsAllDrives = true;
-        
+
         await updateRequest.ExecuteAsync();
     }
 
