@@ -222,4 +222,21 @@ public class SpreadsheetTests : TestBase
 
         Assert.IsNotNull(result);
     }
+
+    [TestMethod]
+    public async Task Find_Column_ReturnsSuccess()
+    {
+        var action = new SpreadsheetActions(InvocationContext, FileManager);
+
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
+        var spreadSheet = new SheetRequest { SheetName = "Стальна шерсть" };
+        var columnRequest = new FindColumnRequest { Value = "Телефон", RowId = "2" };
+
+        var result = await action.FindColumn(spreadsheetFileRequest, spreadSheet, columnRequest);
+
+        var json = Newtonsoft.Json.JsonConvert.SerializeObject(result);
+        Console.WriteLine(json);
+
+        Assert.IsNotNull(result);
+    }
 }

@@ -325,6 +325,48 @@ public class SpreadsheetActions : BaseInvocable
         return new ColumnDto() { Column = result.Select(x => x.FirstOrDefault()?.ToString() ?? string.Empty).ToList() };
     }
 
+    [Action("Find sheet column", Description = "Providing a row index and a cell value, return column position (letter) where said value is located")]
+    public async Task<string?> FindColumn(
+        [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+        [ActionParameter] SheetRequest sheetRequest,
+        [ActionParameter] FindColumnRequest input)
+    {
+        if (string.IsNullOrWhiteSpace(spreadsheetFileRequest?.SpreadSheetId))
+            throw new PluginMisconfigurationException("Spreadsheet ID cannot be empty.");
+        if (string.IsNullOrWhiteSpace(sheetRequest?.SheetName))
+            throw new PluginMisconfigurationException("Sheet title cannot be empty.");
+        if (input is null)
+            throw new PluginMisconfigurationException("Input cannot be null.");
+        if (string.IsNullOrWhiteSpace(input.RowId))
+            throw new PluginMisconfigurationException("Row must be provided.");
+
+        var rowIndex = ParseRow(input.RowId);
+        if (rowIndex <= 0)
+            throw new PluginMisconfigurationException("Row must be a positive number (e.g., 1, 2, 3).");
+
+        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+
+        var a1RowRange = $"{sheetRequest.SheetName}!{rowIndex}:{rowIndex}";
+        var request = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, a1RowRange);
+
+        var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await request.ExecuteAsync());
+        if (response?.Values is null || response.Values.Count == 0)
+            return null;
+
+        var values = response.Values[0]
+            .Select(c => c?.ToString() ?? string.Empty)
+            .ToList();
+
+        var target = input.Value ?? string.Empty;
+        var colIndex = values.FindIndex(v => string.Equals(v, target, StringComparison.Ordinal));
+
+        if (colIndex < 0)
+            return null;
+
+        var columnLetter = (colIndex + 1).ToExcelColumnAddress();
+        return columnLetter;
+    }
+
     [Action("Update sheet column", Description = "Update column by start address")]
     public async Task<ColumnDto> UpdateColumn(
         [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
