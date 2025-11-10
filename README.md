@@ -30,6 +30,7 @@ Google Sheets is a cloud-based spreadsheet tool that enables easy collaboration 
 - **Search spreadsheets** Gets all spreadsheets
 - **Delete sheet** Deletes sheet
 - **Clear sheet range** Clears the values of all cells within a specified range
+- **Find sheet column** Providing a row index and a cell value, return column position (letter) where said value is located
 
 ### Glossary Actions
 
