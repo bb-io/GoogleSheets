@@ -1,7 +1,3 @@
-﻿namespace Apps.GoogleSheets.Dtos
-{
-    public class CellDto
-    {
-        public string Value { get; set; }
-    }
-}
+﻿namespace Apps.GoogleSheets.Dtos;
+
+public record CellDto(string Value);
