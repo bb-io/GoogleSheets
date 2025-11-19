@@ -66,13 +66,13 @@ public class SpreadsheetActions : BaseInvocable
             await GetSheetValues(client, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, a1, a1));
 
         if (sheetValues is null || sheetValues.Count == 0)
-            return new CellDto { Value = string.Empty };
+            return new CellDto(string.Empty);
 
         var row = sheetValues[0];
         if (row is null || row.Count == 0)
-            return new CellDto { Value = string.Empty };
+            return new CellDto(string.Empty);
 
-        return new CellDto { Value = row[0]?.ToString() ?? string.Empty };
+        return new CellDto(row[0]?.ToString() ?? string.Empty);
     }
 
     [Action("Update sheet cell", Description = "Update cell by address")]
@@ -92,12 +92,13 @@ public class SpreadsheetActions : BaseInvocable
         var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
         updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
         updateRequest.IncludeValuesInResponse = true;
+        
         var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await updateRequest.ExecuteAsync());
         if (result?.UpdatedData?.Values == null || result.UpdatedData.Values.Count == 0 || result.UpdatedData.Values[0].Count == 0)
         {
             throw new PluginApplicationException("No updated data was returned from the API. Please check your input and try again");
         }
-        return new CellDto { Value = result?.UpdatedData.Values[0][0].ToString() };
+        return new CellDto(result?.UpdatedData.Values[0][0].ToString() ?? string.Empty);
     }
 
     [Action("Debug", Description = "Can be used only for debugging purposes.")]
@@ -1239,7 +1240,10 @@ public class SpreadsheetActions : BaseInvocable
         GoogleSheetsClient client)
     {
         var spreadSheetRequest = client.Spreadsheets.Get(spreadSheetId);
-        var spreadSheet = await spreadSheetRequest.ExecuteAsync();
+        var spreadSheet = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => 
+            await spreadSheetRequest.ExecuteAsync()
+        );
+        
         var sheet = spreadSheet.Sheets.FirstOrDefault(x => x.Properties.Title == sheetName);
         var rowCount = sheet.Properties.GridProperties.RowCount;
 
