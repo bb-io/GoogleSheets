@@ -7,7 +7,7 @@ namespace Apps.GoogleSheets.Models.Requests
     public class SpreadsheetFileRequest
     {
         [Display("Spreadsheet ID")]
-        [DataSource(typeof(SpreadsheetFileDataSourceHandler))]
+        [DataSource(typeof(SpreadsheetFilePickerDataSourceHandler))]
         public string SpreadSheetId { get; set; }
     }
 }

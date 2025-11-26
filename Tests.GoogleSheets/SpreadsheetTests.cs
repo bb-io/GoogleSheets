@@ -230,7 +230,7 @@ public class SpreadsheetTests : TestBase
 
         var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
         var spreadSheet = new SheetRequest { SheetName = "Стальна шерсть" };
-        var columnRequest = new FindColumnRequest { Value = "Телефон", RowId = "2" };
+        var columnRequest = new FindColumnRequest { Value = "Стальная шерсть", RowId = "5" };
 
         var result = await action.FindColumn(spreadsheetFileRequest, spreadSheet, columnRequest);
 
