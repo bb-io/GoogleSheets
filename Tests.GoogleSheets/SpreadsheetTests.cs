@@ -1,4 +1,5 @@
 ﻿using Apps.GoogleSheets.Actions;
+using Apps.GoogleSheets.Models;
 using Apps.GoogleSheets.Models.Requests;
 using Apps.GoogleSheets.Models.Responses;
 using Tests.GoogleSheets.Base;
@@ -236,6 +237,25 @@ public class SpreadsheetTests : TestBase
 
         var json = Newtonsoft.Json.JsonConvert.SerializeObject(result);
         Console.WriteLine(json);
+
+        Assert.IsNotNull(result);
+    }
+
+
+    [TestMethod]
+    public async Task ImportGlossary_ReturnsSuccess()
+    {
+        var action = new SpreadsheetActions(InvocationContext, FileManager);
+
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "1yklkRx2A5yD8gCOMaDCnxzKbQC_LlkjuJYjqMY1Sp38" };
+
+        var result = await action.ImportGlossary(spreadsheetFileRequest,new GlossaryWrapper 
+        {
+            Glossary= new Blackbird.Applications.Sdk.Common.Files.FileReference
+            {
+                Name = "Glossary.tbx"
+            }
+        },true);
 
         Assert.IsNotNull(result);
     }
