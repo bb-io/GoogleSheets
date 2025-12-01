@@ -15,6 +15,7 @@ using Blackbird.Applications.Sdk.Glossaries.Utils.Dtos;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using System.Globalization;
 using System.Net.Mime;
@@ -922,30 +923,39 @@ public class SpreadsheetActions : BaseInvocable
                 return null;
             }
 
-            if (columnName == $"{Term} ({languageCode})" || columnName == $"{Variations} ({languageCode})" ||
+            if (columnName == $"{Term} ({languageCode})" ||
+                columnName == $"{Variations} ({languageCode})" ||
                 columnName == $"{Notes} ({languageCode})")
+            {
                 return string.Empty;
+            }
 
             return null;
         }
 
-        await using var glossaryStream = await _fileManagementClient.DownloadAsync(glossary.Glossary);
+        await using var originalStream = await _fileManagementClient.DownloadAsync(glossary.Glossary);
 
-        await ValidateTbxOrThrow(glossaryStream, glossary.Glossary);
-        if (glossaryStream.CanSeek) glossaryStream.Seek(0, SeekOrigin.Begin);
+        await using var ms = new MemoryStream();
+        await originalStream.CopyToAsync(ms);
+        ms.Position = 0;
 
-        var blackbirdGlossary = await glossaryStream.ConvertFromTbx();
+        await ValidateTbxOrThrow(ms, glossary.Glossary);
+
+        ms.Position = 0;
+
+        var blackbirdGlossary = await ms.ConvertFromTbx();
 
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
         var sheetTitle = blackbirdGlossary.Title ?? Path.GetFileNameWithoutExtension(glossary.Glossary.Name)!;
 
         var spreadsheet = await client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
-        var sheet = spreadsheet.Sheets.FirstOrDefault(sheet => sheet.Properties.Title == sheetTitle)?.Properties;
+        var sheet = spreadsheet.Sheets.FirstOrDefault(s => s.Properties.Title == sheetTitle)?.Properties;
 
         if (sheet != null && (overwriteSheet == null || overwriteSheet.Value == false))
-            sheetTitle += $" {DateTime.Now.ToString("g")}";
+            sheetTitle += $" {DateTime.Now:g}";
 
         if (sheet == null || (sheet != null && (overwriteSheet == null || overwriteSheet.Value == false)))
+        {
             sheet = (await client.Spreadsheets.BatchUpdate(
                 new BatchUpdateSpreadsheetRequest
                 {
@@ -960,10 +970,12 @@ public class SpreadsheetActions : BaseInvocable
                         }
                     }
                 }, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync()).Replies[0].AddSheet.Properties;
+        }
         else
         {
             await client.Spreadsheets.Values
-                .Clear(new ClearValuesRequest(), spreadsheetFileRequest.SpreadSheetId, sheetTitle).ExecuteAsync();
+                .Clear(new ClearValuesRequest(), spreadsheetFileRequest.SpreadSheetId, sheetTitle)
+                .ExecuteAsync();
         }
 
         var languagesPresent = blackbirdGlossary.ConceptEntries
@@ -977,9 +989,10 @@ public class SpreadsheetActions : BaseInvocable
                 .Select(suffix => $"{suffix} ({language})"))
             .ToList();
 
-        var rowsToAdd = new List<IList<object>>();
-        rowsToAdd.Add(
-            new List<object>(new[] { Id, Definition, SubjectField, Notes }.Concat(languageRelatedColumns)));
+        var rowsToAdd = new List<IList<object>>
+        {
+            new List<object>(new[] { Id, Definition, SubjectField, Notes }.Concat(languageRelatedColumns))
+        };
 
         foreach (var entry in blackbirdGlossary.ConceptEntries)
         {
@@ -987,13 +1000,13 @@ public class SpreadsheetActions : BaseInvocable
                 .SelectMany(languageCode =>
                     languageRelatedColumns
                         .Select(column => GetColumnValue(column, entry, languageCode)))
-                .Where(value => value != null);
+                .Where(value => value != null)!;
 
             rowsToAdd.Add(new List<object>(new[]
             {
                 string.IsNullOrWhiteSpace(entry.Id) ? Guid.NewGuid().ToString() : entry.Id,
-                entry.Definition ?? "",
-                entry.SubjectField ?? "",
+                entry.Definition ?? string.Empty,
+                entry.SubjectField ?? string.Empty,
                 string.Join(';', entry.Notes ?? Enumerable.Empty<string>())
             }.Concat(languageRelatedValues)));
         }
@@ -1007,10 +1020,10 @@ public class SpreadsheetActions : BaseInvocable
         var valueRange = new ValueRange { Values = rowsToAdd };
         var updateRequest =
             client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
-        updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
+        updateRequest.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.USERENTERED;
         await updateRequest.ExecuteAsync();
 
-        return new(sheet);
+        return new SheetDto(sheet);
     }
 
     [Action("Export glossary", Description = "Export glossary from sheet")]
