@@ -218,6 +218,42 @@ public class SpreadsheetActions : BaseInvocable
         return new(response.Replies[0].AddSheet.Properties);
     }
 
+    [Action("Move file", Description = "Move a Google Drive file to a new parent folder.")]
+    public async Task<MoveFileResponse> MoveFile([ActionParameter] MoveFileRequest input)
+    {
+        if (string.IsNullOrWhiteSpace(input?.FileId))
+            throw new PluginMisconfigurationException("File ID cannot be empty. Please check your input and try again.");
+
+        if (string.IsNullOrWhiteSpace(input.NewParentFolderId))
+            throw new PluginMisconfigurationException("New parent folder ID cannot be empty. Please check your input and try again.");
+
+        var drive = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
+
+        var get = drive.Files.Get(input.FileId);
+        get.Fields = "id,name,parents,webViewLink";
+        get.SupportsAllDrives = true;
+
+        var meta = await ErrorHandler.ExecuteWithErrorHandlingAsync(get.ExecuteAsync);
+
+        var previousParents = string.Join(",", meta.Parents ?? new List<string>());
+
+        var update = drive.Files.Update(new Google.Apis.Drive.v3.Data.File(), input.FileId);
+        update.AddParents = input.NewParentFolderId;
+        update.RemoveParents = previousParents;
+        update.Fields = "id,name,parents,webViewLink";
+        update.SupportsAllDrives = true;
+
+        var updated = await ErrorHandler.ExecuteWithErrorHandlingAsync(update.ExecuteAsync);
+
+        return new MoveFileResponse
+        {
+            Id = updated.Id,
+            Name = updated.Name,
+            Parents = updated.Parents,
+            Url = updated.WebViewLink
+        };
+    }
+
     [Action("Create spreadsheet", Description = "Create a new spreadsheet")]
     public async Task<SpreadsheetDto> CreateSpreadsheet([ActionParameter] CreateSpreadsheetRequest input)
     {
