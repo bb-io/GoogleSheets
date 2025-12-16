@@ -29,6 +29,7 @@ Google Sheets is a cloud-based spreadsheet tool that enables easy collaboration 
 - **Paste into existing sheet from XLSX file** Appends the content of an XLSX spreadsheet into an existing sheet
 - **Search spreadsheets** Gets all spreadsheets
 - **Delete sheet** Deletes sheet
+- **Move file** Moves file to specified folder
 - **Clear sheet range** Clears the values of all cells within a specified range
 - **Find sheet column** Providing a row index and a cell value, return column position (letter) where said value is located
 
