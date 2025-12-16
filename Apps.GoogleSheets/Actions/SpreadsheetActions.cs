@@ -230,28 +230,14 @@ public class SpreadsheetActions : BaseInvocable
         var drive = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
 
         var get = drive.Files.Get(input.FileId);
-        get.Fields = "id,name,parents,webViewLink,mimeType,shortcutDetails/targetId";
+        get.Fields = "id,name,parents,webViewLink";
         get.SupportsAllDrives = true;
 
         var meta = await ErrorHandler.ExecuteWithErrorHandlingAsync(get.ExecuteAsync);
 
-        var fileIdToMove = meta.Id;
-        if (string.Equals(meta.MimeType, "application/vnd.google-apps.shortcut", StringComparison.OrdinalIgnoreCase)
-            && (input.MoveTargetIfShortcut ?? false)
-            && !string.IsNullOrWhiteSpace(meta.ShortcutDetails?.TargetId))
-        {
-            fileIdToMove = meta.ShortcutDetails.TargetId;
-
-            var getTarget = drive.Files.Get(fileIdToMove);
-            getTarget.Fields = "id,name,parents,webViewLink,mimeType";
-            getTarget.SupportsAllDrives = true;
-
-            meta = await ErrorHandler.ExecuteWithErrorHandlingAsync(getTarget.ExecuteAsync);
-        }
-
         var previousParents = string.Join(",", meta.Parents ?? new List<string>());
 
-        var update = drive.Files.Update(new Google.Apis.Drive.v3.Data.File(), fileIdToMove);
+        var update = drive.Files.Update(new Google.Apis.Drive.v3.Data.File(), input.FileId);
         update.AddParents = input.NewParentFolderId;
         update.RemoveParents = previousParents;
         update.Fields = "id,name,parents,webViewLink";

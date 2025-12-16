@@ -13,8 +13,5 @@ namespace Apps.GoogleSheets.Models.Requests
         [Display("New parent folder ID")]
         [FileDataSource(typeof(FolderPickerDataSourceHandler))]
         public string NewParentFolderId { get; set; } = default!;
-
-        [Display("Move target if shortcut", Description = "If the file is a Google Drive shortcut, move the target file instead of the shortcut itself.")]
-        public bool? MoveTargetIfShortcut { get; set; }
     }
 }
