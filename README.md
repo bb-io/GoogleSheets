@@ -32,6 +32,7 @@ Google Sheets is a cloud-based spreadsheet tool that enables easy collaboration 
 - **Move file** Moves file to specified folder
 - **Clear sheet range** Clears the values of all cells within a specified range
 - **Find sheet column** Providing a row index and a cell value, return column position (letter) where said value is located
+- **Get sheet names** Gets all sheet names in a spreadsheet
 
 ### Glossary Actions
 
