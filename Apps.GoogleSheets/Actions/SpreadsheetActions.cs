@@ -1,6 +1,7 @@
 ﻿using Apps.GoogleSheets.Dtos;
 using Apps.GoogleSheets.Extensions;
 using Apps.GoogleSheets.Models;
+using Apps.GoogleSheets.Models.Dto;
 using Apps.GoogleSheets.Models.Requests;
 using Apps.GoogleSheets.Models.Responses;
 using Apps.GoogleSheets.Utils;
@@ -874,6 +875,32 @@ public class SpreadsheetActions : BaseInvocable
             .GroupBy(x => x.Id)
             .Select(g => g.First())
             .ToList();
+    }
+
+    [Action("Get sheet names", Description = "Returns all sheet names for a spreadsheet")]
+    public async Task<SheetNamesResponse> GetSheetNames(
+    [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest)
+    {
+        if (string.IsNullOrWhiteSpace(spreadsheetFileRequest?.SpreadSheetId))
+            throw new PluginMisconfigurationException("Spreadsheet ID cannot be empty.");
+
+        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+
+        var getReq = client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId);
+        getReq.Fields = "sheets(properties(sheetId,title))";
+
+        var spreadsheet = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await getReq.ExecuteAsync());
+
+        var sheets = spreadsheet?.Sheets?
+            .Where(s => !string.IsNullOrWhiteSpace(s?.Properties?.Title))
+            .Select(s => new SheetNameDto
+            {
+                Name = s.Properties!.Title,
+                SheetId = s.Properties.SheetId
+            })
+            .ToList() ?? new List<SheetNameDto>();
+
+        return new SheetNamesResponse { Sheets = sheets };
     }
 
     [Action("Delete sheet", Description = "Delete a sheet within a spreadsheet")]
