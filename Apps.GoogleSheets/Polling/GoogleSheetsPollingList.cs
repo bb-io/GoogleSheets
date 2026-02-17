@@ -11,76 +11,81 @@ namespace Apps.GoogleSheets.Polling;
 public class GoogleSheetsPollingList(InvocationContext invocationContext) : BaseInvocable(invocationContext)
 {
     [PollingEvent("On new rows added", "Triggered when new rows are added to the sheet")]
-    public async Task<PollingEventResponse<NewRowAddedMemory, IEnumerable<NewRowResult>>> OnNewRowsAdded(
+    public async Task<PollingEventResponse<NewRowAddedMemory, NewRowResult>> OnNewRowsAdded(
          PollingEventRequest<NewRowAddedMemory> request,
          [PollingEventParameter] SpreadsheetFileRequest spreadsheetFileRequest,
          [PollingEventParameter] SheetRequest sheetRequest)
     {
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
-        var valuesRequest = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
-        var valuesResponse = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await valuesRequest.ExecuteAsync());
+        var valuesRequest = client.Spreadsheets.Values.Get(
+            spreadsheetFileRequest.SpreadSheetId,
+            sheetRequest.SheetName);
 
-        int currentRowCount = (valuesResponse.Values != null) ? valuesResponse.Values.Count : 0;
+        var valuesResponse = await ErrorHandler.ExecuteWithErrorHandlingAsync(
+            async () => await valuesRequest.ExecuteAsync());
+
+        var currentRowCount = valuesResponse.Values?.Count ?? 0;
+
         if (request.Memory == null)
         {
-            request.Memory = new NewRowAddedMemory
+            var initMemory = new NewRowAddedMemory
             {
                 LastRowCount = currentRowCount,
                 LastPollingTime = DateTime.UtcNow,
                 Triggered = false
             };
 
-            return new PollingEventResponse<NewRowAddedMemory, IEnumerable<NewRowResult>>
+            return new PollingEventResponse<NewRowAddedMemory, NewRowResult>
             {
                 FlyBird = false,
-                Memory = request.Memory,
+                Memory = initMemory,
                 Result = null
             };
         }
 
         var memory = request.Memory;
-        var newRowsList = new List<NewRow>();
 
-        if (valuesResponse.Values != null && currentRowCount > memory.LastRowCount)
+        if (valuesResponse.Values == null || currentRowCount <= memory.LastRowCount)
         {
-            for (int i = memory.LastRowCount; i < currentRowCount; i++)
-            {
-                var rowValues = new List<string>();
-                foreach (var cell in valuesResponse.Values[i])
-                {
-                    rowValues.Add(cell != null ? cell.ToString() : string.Empty);
-                }
+            memory.LastPollingTime = DateTime.UtcNow;
+            memory.Triggered = false;
 
-                var newRow = new NewRow
-                {
-                    RowIndex = i + 1,
-                    RowValues = rowValues
-                };
-                newRowsList.Add(newRow);
-            }
+            return new PollingEventResponse<NewRowAddedMemory, NewRowResult>
+            {
+                FlyBird = false,
+                Memory = memory,
+                Result = null
+            };
+        }
+
+        var newRows = new List<NewRow>();
+
+        for (int i = memory.LastRowCount; i < currentRowCount; i++)
+        {
+            var rowValues = new List<string>();
+
+            foreach (var cell in valuesResponse.Values[i])
+                rowValues.Add(cell?.ToString() ?? string.Empty);
+
+            newRows.Add(new NewRow
+            {
+                RowIndex = i + 1,
+                RowValues = rowValues
+            });
         }
 
         memory.LastRowCount = currentRowCount;
         memory.LastPollingTime = DateTime.UtcNow;
-        memory.Triggered = newRowsList.Any();
+        memory.Triggered = newRows.Any();
 
-        var result = new List<NewRowResult>();
-        if (newRowsList.Any())
-        {
-            var newRowResult = new NewRowResult
-            {
-                NewRows = newRowsList
-            };
-            result.Add(newRowResult);
-        }
+        var result = new NewRowResult { NewRows = newRows };
 
-        var response = new PollingEventResponse<NewRowAddedMemory, IEnumerable<NewRowResult>>
+        return new PollingEventResponse<NewRowAddedMemory, NewRowResult>
         {
-            FlyBird = newRowsList.Any(),
+            FlyBird = newRows.Any(),
             Memory = memory,
             Result = result
         };
-        return response;
     }
 }
