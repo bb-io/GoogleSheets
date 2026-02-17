@@ -11,7 +11,7 @@ namespace Tests.GoogleSheets;
 public class PollingTests : TestBase
 {
     [TestMethod]
-    public async Task Polling_ReturnsSucces()
+     public async Task Polling_ReturnsSucces()
     {
         var spreadsheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc";
         var sheetName = "Стальна шерсть";
@@ -39,22 +39,7 @@ public class PollingTests : TestBase
         };
 
         var response = await actions.OnNewRowsAdded(pollingRequest, spreadId, spreadName);
-
-        if (response.Result != null)
-        {
-            foreach (var result in response.Result)
-            {
-                foreach (var newRow in result.NewRows)
-                {
-                    Console.WriteLine($"Row Index: {newRow.RowIndex}");
-                    foreach (var cellValue in newRow.RowValues)
-                    {
-                        Console.WriteLine($"   Cell: {cellValue}");
-                    }
-                }
-            }
-        }
-
+        Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(response));
         Assert.IsNotNull(response, "Response is null.");
     }
 
