@@ -1331,10 +1331,10 @@ public class SpreadsheetActions : BaseInvocable
     }
 
     private async Task SetColumnsHiddenState(
-       SpreadsheetFileRequest spreadsheetFileRequest,
-       SheetRequest sheetRequest,
-       HideUnhideColumnsRequest input,
-       bool hidden)
+    SpreadsheetFileRequest spreadsheetFileRequest,
+    SheetRequest sheetRequest,
+    HideUnhideColumnsRequest input,
+    bool hidden)
     {
         if (string.IsNullOrWhiteSpace(spreadsheetFileRequest?.SpreadSheetId))
             throw new PluginMisconfigurationException("Spreadsheet ID cannot be empty.");
@@ -1367,8 +1367,19 @@ public class SpreadsheetActions : BaseInvocable
 
         if (input.AllColumns == true)
         {
-            startIndex = 0;
-            endIndex = columnCount;
+            if (hidden)
+            {
+                if (columnCount <= 1)
+                    throw new PluginApplicationException("Google Sheets doesn't allow hiding all columns on a sheet.");
+
+                startIndex = 1;
+                endIndex = columnCount;
+            }
+            else
+            {
+                startIndex = 0;
+                endIndex = columnCount;
+            }
         }
         else
         {
@@ -1397,31 +1408,34 @@ public class SpreadsheetActions : BaseInvocable
 
             if (endIndex > columnCount)
                 endIndex = columnCount;
+
+            if (hidden && startIndex == 0 && endIndex == columnCount)
+                throw new PluginApplicationException("Google Sheets doesn't allow hiding all columns on a sheet.");
         }
 
         var batchRequest = new BatchUpdateSpreadsheetRequest
         {
             Requests = new List<Request>
+        {
+            new Request
             {
-                new Request
+                UpdateDimensionProperties = new UpdateDimensionPropertiesRequest
                 {
-                    UpdateDimensionProperties = new UpdateDimensionPropertiesRequest
+                    Range = new DimensionRange
                     {
-                        Range = new DimensionRange
-                        {
-                            SheetId = sheetId,
-                            Dimension = "COLUMNS",
-                            StartIndex = startIndex,
-                            EndIndex = endIndex
-                        },
-                        Properties = new DimensionProperties
-                        {
-                            HiddenByUser = hidden
-                        },
-                        Fields = "hiddenByUser"
-                    }
+                        SheetId = sheetId,
+                        Dimension = "COLUMNS",
+                        StartIndex = startIndex,
+                        EndIndex = endIndex
+                    },
+                    Properties = new DimensionProperties
+                    {
+                        HiddenByUser = hidden
+                    },
+                    Fields = "hiddenByUser"
                 }
             }
+        }
         };
 
         await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>

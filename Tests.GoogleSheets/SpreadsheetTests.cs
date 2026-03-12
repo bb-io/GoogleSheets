@@ -279,7 +279,7 @@ public class SpreadsheetTests : TestBase
 
         var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
         var sheetRequest = new SheetRequest { SheetName = "Стальна шерсть" }; 
-        var hideUnhide = new HideUnhideColumnsRequest { StartColumn = "A", EndColumn= "B" };
+        var hideUnhide = new HideUnhideColumnsRequest { /*StartColumn = "A", EndColumn = "B",*/ AllColumns = true };
 
         await action.HideColumns(spreadsheetFileRequest, sheetRequest, hideUnhide);
         Assert.IsTrue(true);
@@ -292,7 +292,7 @@ public class SpreadsheetTests : TestBase
 
         var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
         var sheetRequest = new SheetRequest { SheetName = "Стальна шерсть" };
-        var hideUnhide = new HideUnhideColumnsRequest { StartColumn = "A", EndColumn = "B" };
+        var hideUnhide = new HideUnhideColumnsRequest { /*StartColumn = "A", EndColumn = "B"*/ AllColumns=true};
 
         await action.UnhideColumns(spreadsheetFileRequest, sheetRequest, hideUnhide);
         Assert.IsTrue(true);
