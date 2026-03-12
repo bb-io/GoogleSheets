@@ -15,7 +15,7 @@ public class PollingTests : TestBase
     {
         var spreadsheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc";
         var sheetName = "Стальна шерсть";
-        int currentRowCount = 6;
+        int currentRowCount = 196;
 
         var actions = new GoogleSheetsPollingList(InvocationContext);
 

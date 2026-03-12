@@ -464,6 +464,24 @@ public class SpreadsheetActions : BaseInvocable
         return sum;
     }
 
+    [Action("Hide columns", Description = "Hide one, multiple, or all columns in a sheet")]
+    public async Task HideColumns(
+        [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+        [ActionParameter] SheetRequest sheetRequest,
+        [ActionParameter] HideUnhideColumnsRequest input)
+    {
+        await SetColumnsHiddenState(spreadsheetFileRequest, sheetRequest, input, true);
+    }
+
+    [Action("Unhide columns", Description = "Unhide one, multiple, or all columns in a sheet")]
+    public async Task UnhideColumns(
+        [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+        [ActionParameter] SheetRequest sheetRequest,
+        [ActionParameter] HideUnhideColumnsRequest input)
+    {
+        await SetColumnsHiddenState(spreadsheetFileRequest, sheetRequest, input, false);
+    }
+
     [Action("Import CSV (Append)", Description = "Import CSV file into Google Sheets")]
     public async Task<SheetDto> ImportCSVAppend(
         [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
@@ -1310,6 +1328,118 @@ public class SpreadsheetActions : BaseInvocable
             myList.Add(i);
         }
         return myList;
+    }
+
+    private async Task SetColumnsHiddenState(
+    SpreadsheetFileRequest spreadsheetFileRequest,
+    SheetRequest sheetRequest,
+    HideUnhideColumnsRequest input,
+    bool hidden)
+    {
+        if (string.IsNullOrWhiteSpace(spreadsheetFileRequest?.SpreadSheetId))
+            throw new PluginMisconfigurationException("Spreadsheet ID cannot be empty.");
+
+        if (string.IsNullOrWhiteSpace(sheetRequest?.SheetName))
+            throw new PluginMisconfigurationException("Sheet name cannot be empty.");
+
+        if (input == null)
+            throw new PluginMisconfigurationException("Input cannot be empty.");
+
+        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+
+        var spreadsheet = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
+            await client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
+
+        var sheet = spreadsheet.Sheets?
+            .FirstOrDefault(x => x.Properties?.Title == sheetRequest.SheetName);
+
+        if (sheet?.Properties?.SheetId == null)
+            throw new PluginMisconfigurationException($"Sheet '{sheetRequest.SheetName}' was not found in the spreadsheet.");
+
+        var sheetId = sheet.Properties.SheetId.Value;
+        var columnCount = sheet.Properties.GridProperties?.ColumnCount ?? 0;
+
+        if (columnCount <= 0)
+            throw new PluginApplicationException("The selected sheet has no columns.");
+
+        int startIndex;
+        int endIndex;
+
+        if (input.AllColumns == true)
+        {
+            if (hidden)
+            {
+                if (columnCount <= 1)
+                    throw new PluginApplicationException("Google Sheets doesn't allow hiding all columns on a sheet.");
+
+                startIndex = 1;
+                endIndex = columnCount;
+            }
+            else
+            {
+                startIndex = 0;
+                endIndex = columnCount;
+            }
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(input.StartColumn))
+                throw new PluginMisconfigurationException("Start column is required when 'All columns' is not enabled.");
+
+            if (!Regex.IsMatch(input.StartColumn, @"^[A-Za-z]+$"))
+                throw new PluginMisconfigurationException("Start column must contain only letters, e.g. A, B, AA.");
+
+            if (!string.IsNullOrWhiteSpace(input.EndColumn) && !Regex.IsMatch(input.EndColumn, @"^[A-Za-z]+$"))
+                throw new PluginMisconfigurationException("End column must contain only letters, e.g. C, D, AB.");
+
+            startIndex = ColumnLetterToNumber(input.StartColumn.ToUpperInvariant()) - 1;
+            endIndex = string.IsNullOrWhiteSpace(input.EndColumn)
+                ? startIndex + 1
+                : ColumnLetterToNumber(input.EndColumn.ToUpperInvariant());
+
+            if (startIndex < 0)
+                throw new PluginMisconfigurationException("Start column is invalid.");
+
+            if (endIndex <= startIndex)
+                throw new PluginMisconfigurationException("End column must be greater than or equal to start column.");
+
+            if (startIndex >= columnCount)
+                throw new PluginMisconfigurationException($"Start column exceeds the sheet column count ({columnCount}).");
+
+            if (endIndex > columnCount)
+                endIndex = columnCount;
+
+            if (hidden && startIndex == 0 && endIndex == columnCount)
+                throw new PluginApplicationException("Google Sheets doesn't allow hiding all columns on a sheet.");
+        }
+
+        var batchRequest = new BatchUpdateSpreadsheetRequest
+        {
+            Requests = new List<Request>
+        {
+            new Request
+            {
+                UpdateDimensionProperties = new UpdateDimensionPropertiesRequest
+                {
+                    Range = new DimensionRange
+                    {
+                        SheetId = sheetId,
+                        Dimension = "COLUMNS",
+                        StartIndex = startIndex,
+                        EndIndex = endIndex
+                    },
+                    Properties = new DimensionProperties
+                    {
+                        HiddenByUser = hidden
+                    },
+                    Fields = "hiddenByUser"
+                }
+            }
+        }
+        };
+
+        await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
+            await client.Spreadsheets.BatchUpdate(batchRequest, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
     }
 
     private async Task ExpandRowLimits(int rowNumber, string spreadSheetId, string sheetName,

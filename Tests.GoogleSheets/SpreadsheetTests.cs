@@ -271,4 +271,30 @@ public class SpreadsheetTests : TestBase
         Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(result));
         Assert.IsNotNull(result);
     }
+
+    [TestMethod]
+    public async Task Hide_Sheet_ReturnsSuccess()
+    {
+        var action = new SpreadsheetActions(InvocationContext, FileManager);
+
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
+        var sheetRequest = new SheetRequest { SheetName = "Стальна шерсть" }; 
+        var hideUnhide = new HideUnhideColumnsRequest { /*StartColumn = "A", EndColumn = "B",*/ AllColumns = true };
+
+        await action.HideColumns(spreadsheetFileRequest, sheetRequest, hideUnhide);
+        Assert.IsTrue(true);
+    }
+
+    [TestMethod]
+    public async Task UnHide_Sheet_ReturnsSuccess()
+    {
+        var action = new SpreadsheetActions(InvocationContext, FileManager);
+
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
+        var sheetRequest = new SheetRequest { SheetName = "Стальна шерсть" };
+        var hideUnhide = new HideUnhideColumnsRequest { /*StartColumn = "A", EndColumn = "B"*/ AllColumns=true};
+
+        await action.UnhideColumns(spreadsheetFileRequest, sheetRequest, hideUnhide);
+        Assert.IsTrue(true);
+    }
 }
