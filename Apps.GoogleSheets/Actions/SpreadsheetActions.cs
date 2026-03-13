@@ -126,7 +126,7 @@ public class SpreadsheetActions : BaseInvocable
     }
 
     [Action("Add new sheet row", Description = "Adds a new row to the first empty line of the sheet")]
-    public async Task<RowDto> AddRow(
+    public async Task<AddRowResponse> AddRow(
         [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
         [ActionParameter] SheetRequest sheetRequest,
         [ActionParameter] InsertRowRequest insertRowRequest)
@@ -146,7 +146,12 @@ public class SpreadsheetActions : BaseInvocable
         if (range != null && range?.Rows != null) { newRowIndex = range.Rows.Count + 1; }
         else { newRowIndex = 1; }
         var startColumn = insertRowRequest.ColumnAddress ?? "A";
-        return await ErrorHandler.ExecuteWithErrorHandlingAsync(() => UpdateRow(spreadsheetFileRequest, sheetRequest, new UpdateRowRequest { Row = insertRowRequest.Row, CellAddress = startColumn + newRowIndex }));
+        var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(() => UpdateRow(spreadsheetFileRequest, sheetRequest, new UpdateRowRequest { Row = insertRowRequest.Row, CellAddress = startColumn + newRowIndex }));
+        return new AddRowResponse 
+        {
+            RowId = newRowIndex.ToString(),
+            Cells = response
+        };
     }
 
     [Action("Clear sheet range", Description = "Clears the values of all cells within a specified range.")]
