@@ -28,14 +28,9 @@ using SheetProperties = Google.Apis.Sheets.v4.Data.SheetProperties;
 namespace Apps.GoogleSheets.Actions;
 
 [ActionList]
-public class SpreadsheetActions : BaseInvocable
+public class SpreadsheetActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) 
+    : BaseInvocable(invocationContext)
 {
-    private readonly IFileManagementClient _fileManagementClient;
-    public SpreadsheetActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) : base(invocationContext)
-    {
-        _fileManagementClient = fileManagementClient;
-    }
-
     #region Actions
 
     [Action("Get sheet cell", Description = "Get cell by address")]
@@ -497,7 +492,7 @@ public class SpreadsheetActions : BaseInvocable
     {
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
-        await using var csvStream = await _fileManagementClient.DownloadAsync(csvFile.File);
+        await using var csvStream = await fileManagementClient.DownloadAsync(csvFile.File);
         var rows = new List<List<string>>();
         using (var reader = new StreamReader(csvStream, Encoding.UTF8))
         using (var csv = new CsvReader(reader, CreateConfiguration(csvOptions)))
@@ -643,7 +638,7 @@ public class SpreadsheetActions : BaseInvocable
         }
 
         streamOut.Position = 0;
-        var csvFile = await _fileManagementClient.UploadAsync(streamOut, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
+        var csvFile = await fileManagementClient.UploadAsync(streamOut, MediaTypeNames.Text.Csv, $"{sheetRequest.SheetName}.csv");
         return new FileResponse() { File = csvFile };
     }
 
@@ -692,7 +687,7 @@ public class SpreadsheetActions : BaseInvocable
             var fileName = wantPdf ? $"{meta.Name}.pdf" : $"{meta.Name}.xlsx";
             return new FileResponse
             {
-                File = await _fileManagementClient.UploadAsync(stream, exportMime, fileName)
+                File = await fileManagementClient.UploadAsync(stream, exportMime, fileName)
             };
         }
 
@@ -711,7 +706,7 @@ public class SpreadsheetActions : BaseInvocable
 
             return new FileResponse
             {
-                File = await _fileManagementClient.UploadAsync(
+                File = await fileManagementClient.UploadAsync(
                     mem,
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     $"{meta.Name}.xlsx")
@@ -728,7 +723,7 @@ public class SpreadsheetActions : BaseInvocable
             [ActionParameter] SourceFileRequest xlsxFile)
     {
         var driveClient = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
-        var sourceStream = await _fileManagementClient.DownloadAsync(xlsxFile.File);
+        var sourceStream = await fileManagementClient.DownloadAsync(xlsxFile.File);
 
         var fileMetadata = new Google.Apis.Drive.v3.Data.File
         {
@@ -832,6 +827,12 @@ public class SpreadsheetActions : BaseInvocable
 
         if (!string.IsNullOrEmpty(request.FolderId))
             query += $" and '{request.FolderId}' in parents";
+
+        if (!string.IsNullOrEmpty(request.FileNameContains))
+        {
+            var safeSearchTerm = request.FileNameContains.Replace("'", "\\'");
+            query += $" and name contains '{safeSearchTerm}'";
+        }
 
         var spreadsheets = new List<SpreadsheetDto>();
         string? pageToken = null;
@@ -967,6 +968,35 @@ public class SpreadsheetActions : BaseInvocable
             async () => await client.Spreadsheets.BatchUpdate(batchRequest, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
     }
 
+    [Action("Copy sheet", Description = "Copy an existing sheet")]
+    public async Task<SpreadsheetDto> CopySheet(
+        [ActionParameter] SpreadsheetFileRequest spreadsheetIdentifier,
+        [ActionParameter] CopySpreadsheetRequest copyInput)
+    {
+        var driveClient = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
+
+        var fileMetadata = new Google.Apis.Drive.v3.Data.File
+        {
+            Name = copyInput.NewSpreadsheetName
+        };
+
+        if (!string.IsNullOrWhiteSpace(copyInput.FolderId))
+            fileMetadata.Parents = [copyInput.FolderId];
+
+        var copyRequest = driveClient.Files.Copy(fileMetadata, spreadsheetIdentifier.SpreadSheetId);
+        copyRequest.Fields = "id, name, webViewLink";
+        copyRequest.SupportsAllDrives = true;
+
+        var copiedFile = await ErrorHandler.ExecuteWithErrorHandlingAsync(copyRequest.ExecuteAsync);
+
+        return new SpreadsheetDto
+        {
+            Id = copiedFile.Id,
+            Title = copiedFile.Name,
+            Url = copiedFile.WebViewLink
+        };
+    }
+
     #region Glossaries
 
     private const string Term = "Term";
@@ -1019,7 +1049,7 @@ public class SpreadsheetActions : BaseInvocable
             return null;
         }
 
-        await using var originalStream = await _fileManagementClient.DownloadAsync(glossary.Glossary);
+        await using var originalStream = await fileManagementClient.DownloadAsync(glossary.Glossary);
 
         await using var ms = new MemoryStream();
         await originalStream.CopyToAsync(ms);
@@ -1268,7 +1298,7 @@ public class SpreadsheetActions : BaseInvocable
 
         await using var glossaryStream = glossary.ConvertToTbx();
         var glossaryFileReference =
-            await _fileManagementClient.UploadAsync(glossaryStream, MediaTypeNames.Text.Xml, $"{title}.tbx");
+            await fileManagementClient.UploadAsync(glossaryStream, MediaTypeNames.Text.Xml, $"{title}.tbx");
         return new() { Glossary = glossaryFileReference };
     }
 

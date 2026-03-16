@@ -4,15 +4,12 @@ using Blackbird.Applications.SDK.Extensions.FileManagement.Models.FileDataSource
 
 namespace Apps.GoogleSheets.Models.Requests;
 
-public class GetSpreadsheetsRequest
+public class CopySpreadsheetRequest
 {
+    [Display("New spreadsheet name")]
+    public string NewSpreadsheetName { get; set; }
+
+    [Display("Folder ID", Description = "Specify the folder where the new spreadsheet should be copied.")]
     [FileDataSource(typeof(FolderPickerDataSourceHandler))]
-    [Display("Folder ID")]
     public string? FolderId { get; set; }
-
-    [Display("Get deleted spreadsheets")]
-    public bool? FetchDeleted { get; set; }
-
-    [Display("File name contains")]
-    public string? FileNameContains { get; set; }
 }
