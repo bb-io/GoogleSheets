@@ -146,7 +146,11 @@ public class SpreadsheetTests : TestBase
     {
         // Arrange
         var actions = new SpreadsheetActions(InvocationContext, FileManager);
-        var request = new GetSpreadsheetsRequest { FolderId = "" };
+        var request = new GetSpreadsheetsRequest 
+        { 
+            FolderId = "",
+            FileNameContains = "123"
+        };
 
         // Act
         var result = await actions.SearchSpreadsheets(request);
