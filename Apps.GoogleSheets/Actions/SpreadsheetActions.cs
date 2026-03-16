@@ -968,6 +968,35 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             async () => await client.Spreadsheets.BatchUpdate(batchRequest, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
     }
 
+    [Action("Copy sheet", Description = "Copy an existing sheet")]
+    public async Task<SpreadsheetDto> CopySheet(
+        [ActionParameter] SpreadsheetFileRequest spreadsheetIdentifier,
+        [ActionParameter] CopySpreadsheetRequest copyInput)
+    {
+        var driveClient = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
+
+        var fileMetadata = new Google.Apis.Drive.v3.Data.File
+        {
+            Name = copyInput.NewSpreadsheetName
+        };
+
+        if (!string.IsNullOrWhiteSpace(copyInput.FolderId))
+            fileMetadata.Parents = [copyInput.FolderId];
+
+        var copyRequest = driveClient.Files.Copy(fileMetadata, spreadsheetIdentifier.SpreadSheetId);
+        copyRequest.Fields = "id, name, webViewLink";
+        copyRequest.SupportsAllDrives = true;
+
+        var copiedFile = await ErrorHandler.ExecuteWithErrorHandlingAsync(copyRequest.ExecuteAsync);
+
+        return new SpreadsheetDto
+        {
+            Id = copiedFile.Id,
+            Title = copiedFile.Name,
+            Url = copiedFile.WebViewLink
+        };
+    }
+
     #region Glossaries
 
     private const string Term = "Term";

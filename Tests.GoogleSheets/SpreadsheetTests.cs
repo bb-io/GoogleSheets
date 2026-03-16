@@ -245,7 +245,6 @@ public class SpreadsheetTests : TestBase
         Assert.IsNotNull(result);
     }
 
-
     [TestMethod]
     public async Task ImportGlossary_ReturnsSuccess()
     {
@@ -300,5 +299,25 @@ public class SpreadsheetTests : TestBase
 
         await action.UnhideColumns(spreadsheetFileRequest, sheetRequest, hideUnhide);
         Assert.IsTrue(true);
+    }
+
+    [TestMethod]
+    public async Task CopySheet_ReturnsCopiedSheet()
+    {
+        // Arrange
+        var actions = new SpreadsheetActions(InvocationContext, FileManager);
+        var sheetIdtoCopy = new SpreadsheetFileRequest { SpreadSheetId = "1FTWJ38IVCXKRuHc93d-vZSXsYzzz_SbqyQGKl5fw4Mo" };
+        var copyRequest = new CopySpreadsheetRequest
+        {
+            NewSpreadsheetName = "copiedToFolder",
+            FolderId = "1ZgCDIk5R2IDhe2i5uEKeWPROHSnKAj8z"
+        };
+
+        // Act
+        var result = await actions.CopySheet(sheetIdtoCopy, copyRequest);
+
+        // Assert
+        Console.WriteLine(result.Title);
+        Assert.AreEqual(copyRequest.NewSpreadsheetName, result.Title);
     }
 }
