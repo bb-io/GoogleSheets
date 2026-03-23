@@ -920,7 +920,8 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             .Select(s => new SheetNameDto
             {
                 Name = s.Properties!.Title,
-                SheetId = s.Properties.SheetId
+                SheetId = s.Properties.SheetId,
+                Index = s.Properties.Index
             })
             .ToList() ?? new List<SheetNameDto>();
 
