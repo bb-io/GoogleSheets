@@ -9,5 +9,7 @@ namespace Apps.GoogleSheets.Models.Dto
 
         [Display("Sheet ID")]
         public int? SheetId { get; set; }
+
+        public double? Index { get; set; }
     }
 }
