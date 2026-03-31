@@ -2,6 +2,7 @@
 using Apps.GoogleSheets.Models;
 using Apps.GoogleSheets.Models.Requests;
 using Apps.GoogleSheets.Models.Responses;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Tests.GoogleSheets.Base;
 
 namespace Tests.GoogleSheets;
@@ -209,6 +210,31 @@ public class SpreadsheetTests : TestBase
         await actions.DeleteSheet(new SpreadsheetFileRequest { SpreadSheetId= "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" },new SheetRequest { SheetName="Test"});
 
         Assert.IsTrue(true);
+    }
+
+    [TestMethod]
+    public async Task UpdateRow_WithInvalidSheetTitle_ThrowsMisconfigurationException()
+    {
+        var action = new SpreadsheetActions(InvocationContext, FileManager);
+
+        var spreadsheetFileRequest = new SpreadsheetFileRequest
+        {
+            SpreadSheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc"
+        };
+        var sheetRequest = new SheetRequest
+        {
+            SheetName = "This sheet does not exist"
+        };
+        var updateRowRequest = new UpdateRowRequest
+        {
+            CellAddress = "A1",
+            Row = ["value"]
+        };
+
+        var ex = await Assert.ThrowsExactlyAsync<PluginMisconfigurationException>(async () =>
+            await action.UpdateRow(spreadsheetFileRequest, sheetRequest, updateRowRequest));
+
+        StringAssert.Contains(ex.Message, "was not found in the spreadsheet");
     }
 
     [TestMethod]
