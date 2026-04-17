@@ -922,7 +922,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
                 Name = s.Properties!.Title,
                 SheetId = s.Properties.SheetId
             })
-            .ToList() ?? new List<SheetNameDto>();
+            .ToList() ?? [];
 
         return new(sheets);
     }
