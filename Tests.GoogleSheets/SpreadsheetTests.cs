@@ -294,7 +294,7 @@ public class SpreadsheetTests : TestBase
     {
         var action = new SpreadsheetActions(InvocationContext, FileManager);
 
-        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "17ieaCd7SXacxaFr7LkhfdiFRVToyBz1kIzoi6IqM8oc" };
+        var spreadsheetFileRequest = new SpreadsheetFileRequest { SpreadSheetId = "1FTWJ38IVCXKRuHc93d-vZSXsYzzz_SbqyQGKl5fw4Mo" };
 
         var result = await action.GetSheetNames(spreadsheetFileRequest);
         Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(result));
