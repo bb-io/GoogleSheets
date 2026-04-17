@@ -924,7 +924,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             })
             .ToList() ?? new List<SheetNameDto>();
 
-        return new SheetNamesResponse { Sheets = sheets };
+        return new(sheets);
     }
 
     [Action("Delete sheet", Description = "Delete a sheet within a spreadsheet")]
