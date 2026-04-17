@@ -920,7 +920,8 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             .Select(s => new SheetNameDto
             {
                 Name = s.Properties!.Title,
-                SheetId = s.Properties.SheetId
+                SheetId = s.Properties.SheetId,
+                Index = s.Properties.Index
             })
             .ToList() ?? [];
 
@@ -1485,8 +1486,13 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             await spreadSheetRequest.ExecuteAsync()
         );
         
-        var sheet = spreadSheet.Sheets.FirstOrDefault(x => x.Properties.Title == sheetName);
-        var rowCount = sheet.Properties.GridProperties.RowCount;
+        var sheet = spreadSheet.Sheets?
+            .FirstOrDefault(x => x.Properties?.Title == sheetName);
+
+        if (sheet?.Properties?.SheetId == null)
+            throw new PluginMisconfigurationException($"Sheet '{sheetName}' was not found in the spreadsheet.");
+
+        var rowCount = sheet.Properties.GridProperties?.RowCount ?? 0;
 
         var expandLength = rowNumber - rowCount;
 
