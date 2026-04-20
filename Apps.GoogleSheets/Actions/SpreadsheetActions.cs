@@ -902,8 +902,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
     }
 
     [Action("Get sheet names", Description = "Returns all sheet names for a spreadsheet")]
-    public async Task<SheetNamesResponse> GetSheetNames(
-    [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest)
+    public async Task<SheetNamesResponse> GetSheetNames([ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest)
     {
         if (string.IsNullOrWhiteSpace(spreadsheetFileRequest?.SpreadSheetId))
             throw new PluginMisconfigurationException("Spreadsheet ID cannot be empty.");
@@ -911,7 +910,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
         var getReq = client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId);
-        getReq.Fields = "sheets(properties(sheetId,title))";
+        getReq.Fields = "sheets(properties(sheetId,title,index))";
 
         var spreadsheet = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await getReq.ExecuteAsync());
 
@@ -923,9 +922,9 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
                 SheetId = s.Properties.SheetId,
                 Index = s.Properties.Index
             })
-            .ToList() ?? new List<SheetNameDto>();
+            .ToList() ?? [];
 
-        return new SheetNamesResponse { Sheets = sheets };
+        return new(sheets);
     }
 
     [Action("Delete sheet", Description = "Delete a sheet within a spreadsheet")]
