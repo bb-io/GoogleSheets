@@ -968,7 +968,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             async () => await client.Spreadsheets.BatchUpdate(batchRequest, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
     }
 
-    [Action("Copy sheet", Description = "Copy an existing sheet")]
+    [Action("Copy spreadsheet", Description = "Copy an existing spreadsheet")]
     public async Task<SpreadsheetDto> CopySheet(
         [ActionParameter] SpreadsheetFileRequest spreadsheetIdentifier,
         [ActionParameter] CopySpreadsheetRequest copyInput)
