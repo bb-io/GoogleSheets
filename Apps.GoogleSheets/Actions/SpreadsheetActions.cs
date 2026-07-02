@@ -454,6 +454,32 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         return index == 0 ? null : index;
     }
 
+    [Action("Find all matching row indexes", Description = "Providing a column address and a value, return all row numbers where said value is located")]
+    public async Task<List<int>> FindAllRows(
+    [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
+    [ActionParameter] SheetRequest sheetRequest,
+    [ActionParameter] FindRowRequest input)
+    {
+        var range = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
+        var maxRowIndex = range.Rows.Count;
+        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
+
+        var result = await GetSheetValues(client,
+            spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column}1", $"{input.Column}{maxRowIndex}");
+
+        if (result is null) { return new List<int>(); }
+
+        var columnValues = result.Select(x => x.FirstOrDefault()?.ToString() ?? string.Empty).ToList();
+
+         var matchingRows = columnValues
+            .Select((value, index) => new { value, index })
+            .Where(x => x.value == input.Value)
+            .Select(x => x.index + 1)
+            .ToList();
+
+        return matchingRows;
+    }
+
     private int ColumnLetterToNumber(string column)
     {
         int sum = 0;
