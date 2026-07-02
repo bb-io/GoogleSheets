@@ -18,6 +18,8 @@ Google Sheets is a cloud-based spreadsheet tool that enables easy collaboration 
 - **Download sheet as CSV file** Downloads a CSV file of the entire sheet. Optionally you can specify a range. Also includes optional inputs for delimiter, quotes, etc.
 - **Download spreadsheet** Download specific spreadsheet as PDF or XLSX.
 - **Find sheet row** Providing a column address and a value, returns row number where said value is located
+- **Find sheet column** Providing a row index and a cell value, return column position (letter) where said value is located
+- **Find all matching row indexes** Providing a column address and a value, return all row numbers where said value is located
 - **Get column** Gets column values
 - **Get range** Gets specific range
 - **Get sheet cell** Gets cell by address
@@ -32,7 +34,6 @@ Google Sheets is a cloud-based spreadsheet tool that enables easy collaboration 
 - **Move file** Moves file to specified folder
 - **Copy spreadsheet** Copies an existing spreadsheet
 - **Clear sheet range** Clears the values of all cells within a specified range
-- **Find sheet column** Providing a row index and a cell value, return column position (letter) where said value is located
 - **Get sheet names** Gets all sheet names in a spreadsheet
 
 ### Glossary Actions
