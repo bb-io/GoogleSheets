@@ -7,7 +7,7 @@ Blackbird is the new automation backbone for the language technology industry. B
 <!-- begin docs -->
 
 Google Sheets is a cloud-based spreadsheet tool that enables easy collaboration on creating, editing, and analyzing data online. With real-time collaboration features and a user-friendly interface, it's a versatile platform for organizing information, managing projects, and creating charts and graphs.
-
+ 
 ## Actions
 
 ### Spreadsheet Actions
