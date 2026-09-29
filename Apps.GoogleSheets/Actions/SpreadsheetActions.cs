@@ -298,8 +298,12 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
     [Action("Get sheet used range", Description = "Get used range")]
     public async Task<RowsDto> GetUsedRange(
         [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
-        [ActionParameter] SheetRequest sheetRequest)
+        [ActionParameter] SheetRequest sheetRequest,
+        [ActionParameter][Display("Skip rows", Description = "Number of rows to skip from the top of the sheet. Defaults to 0.")] int? skipRows = null)
     {
+        if (skipRows < 0)
+            throw new PluginMisconfigurationException("Skip rows must be zero or greater.");
+
         var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
         var request = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
         var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await request.ExecuteAsync());
@@ -307,10 +311,14 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         {
             var rangeIDs = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => GetIdsRange(1, result.Values.Count));
             var rows = result?.Values?.Select(x => x.Select(y => y?.ToString() ?? string.Empty).ToList()).ToList();
+            var remainingRows = rangeIDs
+                .Zip(rows, (id, rowvalues) => new _row { RowId = id, Values = rowvalues })
+                .Skip(skipRows ?? 0)
+                .ToList();
             return new RowsDto()
             {
-                Rows = rangeIDs.Zip(rows, (id, rowvalues) => new _row { RowId = id, Values = rowvalues }).ToList(),
-                RowsCount = (double)result?.Values?.Count
+                Rows = remainingRows,
+                RowsCount = remainingRows.Count
             };
         }
         else return new RowsDto() { };
