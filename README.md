@@ -24,7 +24,7 @@ Google Sheets is a cloud-based spreadsheet tool that enables easy collaboration 
 - **Get range** Gets specific range
 - **Get sheet cell** Gets cell by address
 - **Get sheet row** Gets sheet row by address
-- **Get sheet used range** Gets used range
+- **Get sheet used range** Gets used range. Optionally set **Skip rows** to omit rows from the top of the sheet. Row IDs retain their original sheet positions, and rows count reflects the returned rows.
 - **Update sheet cell** Updates cell by address
 - **Update sheet row** Updates row by start address
 - **Update sheet column** Updates column by start address
