@@ -531,8 +531,16 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         using (var reader = new StreamReader(csvStream, Encoding.UTF8))
         using (var csv = new CsvReader(reader, CreateConfiguration(csvOptions)))
         {
-            while (await csv.ReadAsync())
-                rows.Add(csv.Parser.Record.ToList());
+            try
+            {
+                while (await csv.ReadAsync())
+                    rows.Add(csv.Parser.Record.ToList());
+            }
+            catch (BadDataException)
+            {
+                throw new PluginMisconfigurationException(
+                    "The provided file is not a valid CSV. Please provide a CSV file and make sure its delimiter, quote, and escape character settings are correct.");
+            }
         }
 
         int maxCols = rows.Any() ? rows.Max(r => r.Count) : 0;
