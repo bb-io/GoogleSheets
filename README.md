@@ -59,9 +59,15 @@ To utilize the **Export glossary** action, ensure that the Google sheet mirrors 
     - Each note in the _Notes (language code)_ column should follow this structure: **Term or variation: note**.
     - Notes for terms should be separated by ';;'. For example, 'money: may refer to physical or banked currency;; cash: refers to physical currency.'
 
-### Events
+## Events
+
+### Rows
 
 - **On new rows added** Triggers when new rows are added to the sheet
+
+### Cells
+
+- **On value added to cell** Triggered when a value is added to a specific cell
 
 ## Feedback
 
