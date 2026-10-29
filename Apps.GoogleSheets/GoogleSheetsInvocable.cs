@@ -8,9 +8,11 @@ public class GoogleSheetsInvocable : BaseInvocable
 {
     protected AuthenticationCredentialsProvider[] Creds => InvocationContext.AuthenticationCredentialsProviders.ToArray();
     protected GoogleSheetsClient Client { get; }
+    protected GoogleDriveClient DriveClient { get; }
 
     public GoogleSheetsInvocable(InvocationContext invocationContext) : base(invocationContext)
     {
         Client = new(Creds);
+        DriveClient = new(Creds);
     }
 }

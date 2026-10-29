@@ -29,7 +29,7 @@ namespace Apps.GoogleSheets.Actions;
 
 [ActionList]
 public class SpreadsheetActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) 
-    : BaseInvocable(invocationContext)
+    : GoogleSheetsInvocable(invocationContext)
 {
     #region Actions
 
@@ -51,16 +51,9 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         if (!Regex.IsMatch(input.Column, @"^[A-Za-z]+$"))
             throw new PluginMisconfigurationException("Column must contain only letters, e.g., A, B, AA.");
 
-        var rowNumber = ParseRow(input.Row);
-        if (rowNumber <= 0)
-            throw new PluginMisconfigurationException("Row must be a positive number (e.g., 1, 2, 3).");
-
-        var a1 = $"{input.Column.ToUpperInvariant()}{rowNumber}";
-
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-
-        var sheetValues = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
-            await GetSheetValues(client, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, a1, a1));
+        string cell = input.ToString();
+        var sheetValues = await ErrorHandler.ExecuteWithErrorHandlingAsync(() => 
+            Client.GetSheetValues(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, cell, cell));
 
         if (sheetValues is null || sheetValues.Count == 0)
             return new CellDto(string.Empty);
@@ -79,14 +72,12 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         [ActionParameter] GetCellRequest cellRequest,
         [ActionParameter] UpdateCellRequest input)
     {
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-
-        await ExpandRowLimits(ParseRow(cellRequest.Row), spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, client);
+        await ExpandRowLimits(ParseRow(cellRequest.Row), spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
 
         var range = $"{sheetRequest.SheetName}!{cellRequest.Column}{ParseRow(cellRequest.Row)}";
 
         var valueRange = new ValueRange { Values = new List<IList<object>> { new List<object> { input.Value } } };
-        var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
+        var updateRequest = Client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
         updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
         updateRequest.IncludeValuesInResponse = true;
         
@@ -110,10 +101,8 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         [ActionParameter] SheetRequest sheetRequest,
         [ActionParameter] GetRowRequest input)
     {
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-
-        var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await GetSheetValues(client,
-            spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column1}{ParseRow(input.RowIndex)}", $"{input.Column2}{ParseRow(input.RowIndex)}"));
+        var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(() => 
+            Client.GetSheetValues(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column1}{ParseRow(input.RowIndex)}", $"{input.Column2}{ParseRow(input.RowIndex)}"));
         if (result is null)
         { return new RowDto { Row = new List<string>() }; }
 
@@ -164,10 +153,8 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         if (string.IsNullOrWhiteSpace(input?.Range))
             throw new PluginMisconfigurationException("Range cannot be empty.");
 
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-
         await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
-            await client.Spreadsheets.Values.Clear(
+            await Client.Spreadsheets.Values.Clear(
                 new ClearValuesRequest(),
                 spreadsheetFileRequest.SpreadSheetId,
                 $"{sheetRequest.SheetName}!{input.Range}"
@@ -180,15 +167,14 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         [ActionParameter] SheetRequest sheetRequest,
         [ActionParameter] UpdateRowRequest updateRowRequest)
     {
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
         var (startColumn, row) = updateRowRequest.CellAddress.ToExcelColumnAndRow();
 
-        await ExpandRowLimits(row, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, client);
+        await ExpandRowLimits(row, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
 
         var endColumn = startColumn + updateRowRequest.Row.Count - 1;
         var range = $"{sheetRequest.SheetName}!{startColumn.ToExcelColumnAddress()}{row}:{endColumn.ToExcelColumnAddress()}{row}";
         var valueRange = new ValueRange { Values = new List<IList<object>> { updateRowRequest.Row.Select(x => (object)x).ToList() } };
-        var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
+        var updateRequest = Client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
         updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
         updateRequest.IncludeValuesInResponse = true;
         var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await updateRequest.ExecuteAsync());
@@ -200,8 +186,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         [ActionParameter] SpreadsheetFileRequest spreadsheetFileRequest,
         [ActionParameter] CreateWorksheetRequest createWorksheetRequest)
     {
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-        var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await client.Spreadsheets.BatchUpdate(
+        var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await Client.Spreadsheets.BatchUpdate(
             new BatchUpdateSpreadsheetRequest
             {
                 Requests = new List<Request>
@@ -228,9 +213,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         if (string.IsNullOrWhiteSpace(input.NewParentFolderId))
             throw new PluginMisconfigurationException("New parent folder ID cannot be empty. Please check your input and try again.");
 
-        var drive = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
-
-        var get = drive.Files.Get(input.FileId);
+        var get = DriveClient.Files.Get(input.FileId);
         get.Fields = "id,name,parents,webViewLink";
         get.SupportsAllDrives = true;
 
@@ -238,7 +221,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
 
         var previousParents = string.Join(",", meta.Parents ?? new List<string>());
 
-        var update = drive.Files.Update(new Google.Apis.Drive.v3.Data.File(), input.FileId);
+        var update = DriveClient.Files.Update(new Google.Apis.Drive.v3.Data.File(), input.FileId);
         update.AddParents = input.NewParentFolderId;
         update.RemoveParents = previousParents;
         update.Fields = "id,name,parents,webViewLink";
@@ -261,8 +244,6 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         if (string.IsNullOrWhiteSpace(input.Title))
             throw new PluginMisconfigurationException("Title cannot be empty. Please provide a spreadsheet title and try again");
 
-        var sheets = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-
         var spreadsheet = new Spreadsheet
         {
             Properties = new SpreadsheetProperties { Title = input.Title }
@@ -280,7 +261,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         }
 
         var created = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
-            await sheets.Spreadsheets.Create(spreadsheet).ExecuteAsync());
+            await Client.Spreadsheets.Create(spreadsheet).ExecuteAsync());
 
         if (!string.IsNullOrEmpty(input.FolderId))
         {
@@ -304,8 +285,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         if (skipRows < 0)
             throw new PluginMisconfigurationException("Skip rows must be zero or greater.");
 
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-        var request = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
+        var request = Client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
         var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await request.ExecuteAsync());
         if (result != null && result?.Values != null)
         {
@@ -338,10 +318,8 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             throw new PluginMisconfigurationException("Start cell can not be null or empty. Please check your input and try again");
         if (string.IsNullOrWhiteSpace(rangeRequest.EndCell))
             throw new PluginMisconfigurationException("End cell can not be null or empty. Please check your input and try again");
-
-
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-        var result = await GetSheetValues(client,
+        
+        var result = await Client.GetSheetValues(
             spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
         if (result == null)
         {
@@ -364,8 +342,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         [ActionParameter] SheetRequest sheetRequest,
         [ActionParameter] GetColumnRequest columnRequest)
     {
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-        var result = await GetSheetValues(client,
+        var result = await Client.GetSheetValues(
             spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{columnRequest.Column}{ParseRow(columnRequest.StartRow)}", $"{columnRequest.Column}{ParseRow(columnRequest.EndRow)}");
         if (result is null)
         {
@@ -393,10 +370,8 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         if (rowIndex <= 0)
             throw new PluginMisconfigurationException("Row must be a positive number (e.g., 1, 2, 3).");
 
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-
         var a1RowRange = $"{sheetRequest.SheetName}!{rowIndex}:{rowIndex}";
-        var request = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, a1RowRange);
+        var request = Client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, a1RowRange);
 
         var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await request.ExecuteAsync());
         if (response?.Values is null || response.Values.Count == 0)
@@ -427,17 +402,16 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             throw new PluginMisconfigurationException("Row data cannot be null or empty. Please check your input and try again");
         }
 
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
         var (Column, startRow) = updateRowRequest.CellAddress.ToExcelColumnAndRow();
         var endRow = startRow + updateRowRequest.Row.Count - 1;
-        await ExpandRowLimits(endRow, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, client);
+        await ExpandRowLimits(endRow, spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
         var range = $"{sheetRequest.SheetName}!{updateRowRequest.CellAddress}:{Column}{endRow}";
         var valueRange = new ValueRange
         {
             Values = new List<IList<object>> { updateRowRequest.Row.Select(x => (object)x).ToList() },
             MajorDimension = "COLUMNS"
         };
-        var updateRequest = client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
+        var updateRequest = Client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
         updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
         updateRequest.IncludeValuesInResponse = true;
         var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await updateRequest.ExecuteAsync());
@@ -452,8 +426,8 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
     {
         var range = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
         var maxRowIndex = range.Rows.Count;
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-        var result = await GetSheetValues(client,
+        
+        var result = await Client.GetSheetValues(
             spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column}1", $"{input.Column}{maxRowIndex}");
         if (result is null) { return null; }
         var columnValues = result.Select(x => x.FirstOrDefault()?.ToString() ?? string.Empty).ToList();
@@ -470,9 +444,8 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
     {
         var range = await GetUsedRange(spreadsheetFileRequest, sheetRequest);
         var maxRowIndex = range.Rows.Count;
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
 
-        var result = await GetSheetValues(client,
+        var result = await Client.GetSheetValues(
             spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, $"{input.Column}1", $"{input.Column}{maxRowIndex}");
 
         if (result is null) { return new List<int>(); }
@@ -524,8 +497,6 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         [ActionParameter] CsvOptions csvOptions,
         [ActionParameter] string? topLeftField = null)
     {
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-
         await using var csvStream = await fileManagementClient.DownloadAsync(csvFile.File);
         var rows = new List<List<string>>();
         using (var reader = new StreamReader(csvStream, Encoding.UTF8))
@@ -559,7 +530,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         }
         else
         {
-            var getReq = client.Spreadsheets.Values
+            var getReq = Client.Spreadsheets.Values
                 .Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
             var getRes = await getReq.ExecuteAsync();
             int existing = getRes.Values?.Count ?? 0;
@@ -580,7 +551,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
                 .ToList()
         };
 
-        var updateReq = client.Spreadsheets.Values
+        var updateReq = Client.Spreadsheets.Values
             .Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
         updateReq.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
 
@@ -588,7 +559,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             await updateReq.ExecuteAsync()
         );
 
-        var spreadsheet = await client.Spreadsheets
+        var spreadsheet = await Client.Spreadsheets
             .Get(spreadsheetFileRequest.SpreadSheetId)
             .ExecuteAsync();
         var sheet = spreadsheet.Sheets
@@ -628,8 +599,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         List<List<string>> rows = new List<List<string>>();
         if (!string.IsNullOrWhiteSpace(rangeRequest.StartCell) && !string.IsNullOrWhiteSpace(rangeRequest.EndCell))
         {
-            var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-            var result = await GetSheetValues(client,
+            var result = await Client.GetSheetValues(
                 spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName, rangeRequest.StartCell, rangeRequest.EndCell);
             if (result != null)
             {
@@ -692,11 +662,9 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         if (string.IsNullOrWhiteSpace(spreadsheetFileRequest.SpreadSheetId))
             throw new PluginMisconfigurationException("Spreadsheet ID can not be null or empty. Please check your input and try again");
 
-        var drive = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
-
         async Task<Google.Apis.Drive.v3.Data.File> GetMetaAsync(string id)
         {
-            var get = drive.Files.Get(id);
+            var get = DriveClient.Files.Get(id);
             get.Fields = "id,name,mimeType,webViewLink,shortcutDetails/targetId,shortcutDetails/targetMimeType";
             get.SupportsAllDrives = true;
             return await ErrorHandler.ExecuteWithErrorHandlingAsync(get.ExecuteAsync);
@@ -723,7 +691,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
                 ? System.Net.Mime.MediaTypeNames.Application.Pdf
                 : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-            var export = drive.Files.Export(meta.Id, exportMime);
+            var export = DriveClient.Files.Export(meta.Id, exportMime);
             var stream = await ErrorHandler.ExecuteWithErrorHandlingAsync(export.ExecuteAsStreamAsync);
 
             var fileName = wantPdf ? $"{meta.Name}.pdf" : $"{meta.Name}.xlsx";
@@ -738,7 +706,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             if (wantPdf)
                 throw new PluginMisconfigurationException("Can't export an XLSX file to PDF via Drive export. Convert it to Google Sheets first or choose XLSX.");
 
-            var get = drive.Files.Get(meta.Id);
+            var get = DriveClient.Files.Get(meta.Id);
             get.SupportsAllDrives = true;
             get.AcknowledgeAbuse = true;
 
@@ -764,7 +732,6 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             [ActionParameter] SheetRequest sheetRequest,
             [ActionParameter] SourceFileRequest xlsxFile)
     {
-        var driveClient = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
         var sourceStream = await fileManagementClient.DownloadAsync(xlsxFile.File);
 
         var fileMetadata = new Google.Apis.Drive.v3.Data.File
@@ -773,7 +740,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             MimeType = "application/vnd.google-apps.spreadsheet"
         };
 
-        var request = driveClient.Files.Create(
+        var request = DriveClient.Files.Create(
             fileMetadata,
             sourceStream,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -782,12 +749,11 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         var uploadedFile = await request.UploadAsync();
         var tempSpreadsheetId = request.ResponseBody.Id;
 
-        var gsheetClient = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-        var tempSpreadsheet = await gsheetClient.Spreadsheets.Get(tempSpreadsheetId).ExecuteAsync();
+        var tempSpreadsheet = await Client.Spreadsheets.Get(tempSpreadsheetId).ExecuteAsync();
         var tempSheet = tempSpreadsheet.Sheets.First();
         var sheetName = tempSheet.Properties.Title;
         var range = $"{sheetName}";
-        var response = await gsheetClient.Spreadsheets.Values.Get(tempSpreadsheetId, range).ExecuteAsync();
+        var response = await Client.Spreadsheets.Values.Get(tempSpreadsheetId, range).ExecuteAsync();
         int rowCount = response.Values.Count;
         int colCount = response.Values.Max(row => row.Count);
         int tempSheetId = tempSheet.Properties.SheetId.Value;
@@ -801,7 +767,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             rowIndex = rowIndex - 1;
         }
 
-        var targetSpreadsheet = await gsheetClient.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+        var targetSpreadsheet = await Client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
         var targetSheetID = targetSpreadsheet.Sheets.First(s => s.Properties.Title == sheetRequest.SheetName)?.Properties.SheetId.Value;
 
         var copyToRequest = new CopySheetToAnotherSpreadsheetRequest
@@ -809,12 +775,12 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             DestinationSpreadsheetId = spreadsheetFileRequest.SpreadSheetId
         };
 
-        var copyResponse = await gsheetClient.Spreadsheets.Sheets
+        var copyResponse = await Client.Spreadsheets.Sheets
             .CopyTo(copyToRequest, tempSpreadsheetId, tempSheetId)
             .ExecuteAsync();
 
         var copiedSheetId = copyResponse.SheetId.Value;
-        await driveClient.Files.Delete(tempSpreadsheetId).ExecuteAsync();
+        await DriveClient.Files.Delete(tempSpreadsheetId).ExecuteAsync();
 
         var copyRequest = new Request
         {
@@ -846,8 +812,8 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             Requests = new List<Request> { copyRequest }
         };
 
-        await gsheetClient.Spreadsheets.BatchUpdate(batchUpdate, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
-        await gsheetClient.Spreadsheets.BatchUpdate(new BatchUpdateSpreadsheetRequest
+        await Client.Spreadsheets.BatchUpdate(batchUpdate, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+        await Client.Spreadsheets.BatchUpdate(new BatchUpdateSpreadsheetRequest
         {
             Requests = new List<Request>{
          new Request { DeleteSheet = new DeleteSheetRequest { SheetId = copiedSheetId}}}
@@ -857,7 +823,6 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
     [Action("Search spreadsheets", Description = "Search all spreadsheets")]
     public async Task<List<SpreadsheetDto>> SearchSpreadsheets([ActionParameter] GetSpreadsheetsRequest request)
     {
-        var driveClient = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
         // Search for .gsheet and .xlsx files
         var trashed = request.FetchDeleted?.ToString().ToLower() ?? "false";
         var query = $"(mimeType='application/vnd.google-apps.spreadsheet' " +
@@ -881,7 +846,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
 
         do
         {
-            var listReq = driveClient.Files.List();
+            var listReq = DriveClient.Files.List();
             listReq.Q = query;
             listReq.Fields =
                 "nextPageToken, files(id, name, mimeType, webViewLink, parents, shortcutDetails/targetId, shortcutDetails/targetMimeType)";
@@ -902,7 +867,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
                 if (f.MimeType == "application/vnd.google-apps.shortcut" &&
                     !string.IsNullOrEmpty(f.ShortcutDetails?.TargetId))
                 {
-                    var getReq = driveClient.Files.Get(f.ShortcutDetails.TargetId);
+                    var getReq = DriveClient.Files.Get(f.ShortcutDetails.TargetId);
                     getReq.Fields = "id, name, mimeType, webViewLink";
                     getReq.SupportsAllDrives = true;
 
@@ -949,9 +914,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         if (string.IsNullOrWhiteSpace(spreadsheetFileRequest?.SpreadSheetId))
             throw new PluginMisconfigurationException("Spreadsheet ID cannot be empty.");
 
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-
-        var getReq = client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId);
+        var getReq = Client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId);
         getReq.Fields = "sheets(properties(sheetId,title,index))";
 
         var spreadsheet = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await getReq.ExecuteAsync());
@@ -977,10 +940,8 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         if (string.IsNullOrWhiteSpace(sheetRequest.SheetName))
             throw new PluginMisconfigurationException("Sheet name cannot be empty. Please check your input and try again.");
 
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-
         var spreadsheet = await ErrorHandler.ExecuteWithErrorHandlingAsync(
-            async () => await client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
+            async () => await Client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
 
         var targetSheetProps = spreadsheet.Sheets?
             .FirstOrDefault(s => s.Properties?.Title == sheetRequest.SheetName)?.Properties;
@@ -1007,7 +968,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         };
 
         await ErrorHandler.ExecuteWithErrorHandlingAsync(
-            async () => await client.Spreadsheets.BatchUpdate(batchRequest, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
+            async () => await Client.Spreadsheets.BatchUpdate(batchRequest, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
     }
 
     [Action("Copy spreadsheet", Description = "Copy an existing spreadsheet")]
@@ -1103,10 +1064,9 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
 
         var blackbirdGlossary = await ms.ConvertFromTbx();
 
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
         var sheetTitle = blackbirdGlossary.Title ?? Path.GetFileNameWithoutExtension(glossary.Glossary.Name)!;
 
-        var spreadsheet = await client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
+        var spreadsheet = await Client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync();
         var sheet = spreadsheet.Sheets.FirstOrDefault(s => s.Properties.Title == sheetTitle)?.Properties;
 
         if (sheet != null && (overwriteSheet == null || overwriteSheet.Value == false))
@@ -1114,7 +1074,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
 
         if (sheet == null || (sheet != null && (overwriteSheet == null || overwriteSheet.Value == false)))
         {
-            sheet = (await client.Spreadsheets.BatchUpdate(
+            sheet = (await Client.Spreadsheets.BatchUpdate(
                 new BatchUpdateSpreadsheetRequest
                 {
                     Requests = new List<Request>
@@ -1131,7 +1091,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         }
         else
         {
-            await client.Spreadsheets.Values
+            await Client.Spreadsheets.Values
                 .Clear(new ClearValuesRequest(), spreadsheetFileRequest.SpreadSheetId, sheetTitle)
                 .ExecuteAsync();
         }
@@ -1177,7 +1137,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             $"{sheet.Title}!{startColumn.ToExcelColumnAddress()}{startRow}:{endColumn.ToExcelColumnAddress()}{rowsToAdd.Count}";
         var valueRange = new ValueRange { Values = rowsToAdd };
         var updateRequest =
-            client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
+            Client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
         updateRequest.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.USERENTERED;
         await updateRequest.ExecuteAsync();
 
@@ -1369,8 +1329,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
     }
     private async Task<SimplerRowsDto> GetUsedRangeForGlossary(SpreadsheetFileRequest spreadsheetFileRequest, SheetRequest sheetRequest)
     {
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-        var request = client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
+        var request = Client.Spreadsheets.Values.Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
         var result = await request.ExecuteAsync();
         if (result != null && result?.Values != null)
         {
@@ -1385,18 +1344,6 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
 
     #region Utils
 
-    private async Task<IList<IList<object?>>> GetSheetValues(
-        GoogleSheetsClient client,
-        string sheetId, string sheetName, string cellA, string cellB)
-    {
-        var range = $"{sheetName}!{cellA}:{cellB}";
-        var request = client.Spreadsheets.Values.Get(sheetId, range);
-
-        var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await request.ExecuteAsync());
-        if (response?.Values == null || response.Values.Count == 0)
-            return new List<IList<object?>>(0);
-        return response?.Values;
-    }
     private List<int> GetIdsRange(int start, int end)
     {
         var myList = new List<int>();
@@ -1422,10 +1369,8 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         if (input == null)
             throw new PluginMisconfigurationException("Input cannot be empty.");
 
-        var client = new GoogleSheetsClient(InvocationContext.AuthenticationCredentialsProviders);
-
         var spreadsheet = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
-            await client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
+            await Client.Spreadsheets.Get(spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
 
         var sheet = spreadsheet.Sheets?
             .FirstOrDefault(x => x.Properties?.Title == sheetRequest.SheetName);
@@ -1516,13 +1461,12 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         };
 
         await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
-            await client.Spreadsheets.BatchUpdate(batchRequest, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
+            await Client.Spreadsheets.BatchUpdate(batchRequest, spreadsheetFileRequest.SpreadSheetId).ExecuteAsync());
     }
 
-    private async Task ExpandRowLimits(int rowNumber, string spreadSheetId, string sheetName,
-        GoogleSheetsClient client)
+    private async Task ExpandRowLimits(int rowNumber, string spreadSheetId, string sheetName)
     {
-        var spreadSheetRequest = client.Spreadsheets.Get(spreadSheetId);
+        var spreadSheetRequest = Client.Spreadsheets.Get(spreadSheetId);
         var spreadSheet = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => 
             await spreadSheetRequest.ExecuteAsync()
         );
@@ -1539,7 +1483,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
 
         if (expandLength > 0)
         {
-            var expandRequest = client.Spreadsheets.BatchUpdate(new BatchUpdateSpreadsheetRequest()
+            var expandRequest = Client.Spreadsheets.BatchUpdate(new BatchUpdateSpreadsheetRequest()
             {
                 Requests = new List<Request>()
                 {
@@ -1569,15 +1513,14 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
 
     private async Task MoveSpreadsheet(Spreadsheet spreadsheet, string folderId)
     {
-        var drive = new GoogleDriveClient(InvocationContext.AuthenticationCredentialsProviders);
         string spreadsheetId = spreadsheet.SpreadsheetId;
 
-        var getRequest = drive.Files.Get(spreadsheetId);
+        var getRequest = DriveClient.Files.Get(spreadsheetId);
         getRequest.Fields = "parents";
         var file = await getRequest.ExecuteAsync();
 
         var previousParents = string.Join(",", file.Parents ?? new List<string>());
-        var updateRequest = drive.Files.Update(
+        var updateRequest = DriveClient.Files.Update(
             new Google.Apis.Drive.v3.Data.File(),
             spreadsheetId
         );
