@@ -7,7 +7,7 @@ using Blackbird.Applications.Sdk.Common.Polling;
 
 namespace Apps.GoogleSheets.Polling;
 
-[PollingEventList]
+[PollingEventList("Rows")]
 public class GoogleSheetsPollingList(InvocationContext invocationContext) : BaseInvocable(invocationContext)
 {
     [PollingEvent("On new rows added", "Triggered when new rows are added to the sheet")]
