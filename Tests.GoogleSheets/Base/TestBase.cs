@@ -1,6 +1,7 @@
 ﻿using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 
 namespace Tests.GoogleSheets.Base;
 
@@ -22,8 +23,11 @@ public class TestBase
     }
 
     protected IEnumerable<AuthenticationCredentialsProvider> Creds { get; set; }
+    protected InvocationContext InvocationContext { get; set; }
+    protected FileManager FileManager { get; set; }
 
-    public InvocationContext InvocationContext { get; set; }
-
-    public FileManager FileManager { get; set; }
+    protected static void PrintJsonResult(object result)
+    {
+        Console.WriteLine(JsonConvert.SerializeObject(result, Formatting.Indented));
+    }
 }
