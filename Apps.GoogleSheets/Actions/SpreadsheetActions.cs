@@ -497,6 +497,8 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         [ActionParameter] CsvOptions csvOptions,
         [ActionParameter] string? topLeftField = null)
     {
+        var a1SheetName = FormatSheetNameForA1Notation(sheetRequest.SheetName);
+
         await using var csvStream = await fileManagementClient.DownloadAsync(csvFile.File);
         var rows = new List<List<string>>();
         using (var reader = new StreamReader(csvStream, Encoding.UTF8))
@@ -531,8 +533,8 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         else
         {
             var getReq = Client.Spreadsheets.Values
-                .Get(spreadsheetFileRequest.SpreadSheetId, sheetRequest.SheetName);
-            var getRes = await getReq.ExecuteAsync();
+                .Get(spreadsheetFileRequest.SpreadSheetId, a1SheetName);
+            var getRes = await ErrorHandler.ExecuteWithErrorHandlingAsync(getReq.ExecuteAsync);
             int existing = getRes.Values?.Count ?? 0;
             startRow = existing + 1;
             startCol = 1;
@@ -540,7 +542,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
 
         int endRow = startRow + rows.Count - 1;
         int endColumn = startCol + maxCols - 1;
-        string range = $"{sheetRequest.SheetName}!"
+        string range = $"{a1SheetName}!"
                       + $"{startCol.ToExcelColumnAddress()}{startRow}"
                       + $":{endColumn.ToExcelColumnAddress()}{endRow}";
 
@@ -569,6 +571,11 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             throw new PluginApplicationException("Sheet not found after update");
 
         return new SheetDto(sheet);
+    }
+
+    private static string FormatSheetNameForA1Notation(string sheetName)
+    {
+        return $"'{sheetName.Replace("'", "''")}'";
     }
 
     private CsvConfiguration CreateConfiguration(CsvOptions csvOptions)
