@@ -244,21 +244,21 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         if (string.IsNullOrWhiteSpace(input.Title))
             throw new PluginMisconfigurationException("Title cannot be empty. Please provide a spreadsheet title and try again");
 
+        var initialSheetName = string.IsNullOrWhiteSpace(input.InitialSheetName)
+            ? "Sheet1"
+            : input.InitialSheetName;
+
         var spreadsheet = new Spreadsheet
         {
-            Properties = new SpreadsheetProperties { Title = input.Title }
-        };
-
-        if (!string.IsNullOrWhiteSpace(input.InitialSheetName))
-        {
-            spreadsheet.Sheets = new List<Sheet>
+            Properties = new SpreadsheetProperties { Title = input.Title },
+            Sheets = new List<Sheet>
             {
                 new()
                 {
-                    Properties = new SheetProperties { Title = input.InitialSheetName }
+                    Properties = new SheetProperties { Title = initialSheetName }
                 }
-            };
-        }
+            }
+        };
 
         var created = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
             await Client.Spreadsheets.Create(spreadsheet).ExecuteAsync());

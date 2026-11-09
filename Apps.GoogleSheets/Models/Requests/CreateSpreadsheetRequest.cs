@@ -10,7 +10,7 @@ public class CreateSpreadsheetRequest
     [Display("Title")]
     public string Title { get; set; }
 
-    [Display("Sheet name")]
+    [Display("Sheet name", Description = "Name of the initial sheet. Defaults to 'Sheet1'.")]
     public string? InitialSheetName { get; set; }
 
     [Display("Folder ID", Description = "Specify the folder where you want to save your spreadsheet.")]
