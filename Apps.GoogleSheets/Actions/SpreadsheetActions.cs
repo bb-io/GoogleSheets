@@ -120,7 +120,7 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
             throw new PluginMisconfigurationException("The row cannot be null or empty. Please check your input and try again");
         }
 
-        if (insertRowRequest.Row.All(cell => string.IsNullOrWhiteSpace(cell)))
+        if (insertRowRequest.Row.All(cell => cell.IsEmptyCell()))
         {
             throw new PluginMisconfigurationException("The row cannot contain only empty values. Please check your input and try again");
         }
@@ -173,12 +173,12 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
 
         var endColumn = startColumn + updateRowRequest.Row.Count - 1;
         var range = $"{sheetRequest.SheetName}!{startColumn.ToExcelColumnAddress()}{row}:{endColumn.ToExcelColumnAddress()}{row}";
-        var valueRange = new ValueRange { Values = new List<IList<object>> { updateRowRequest.Row.Select(x => (object)x).ToList() } };
+        var valueRange = new ValueRange { Values = new List<IList<object>> { updateRowRequest.Row.ReplaceEmptyCellPlaceholders().Select(x => (object)x).ToList() } };
         var updateRequest = Client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
         updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
         updateRequest.IncludeValuesInResponse = true;
         var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await updateRequest.ExecuteAsync());
-        return new RowDto() { Row = result.UpdatedData.Values[0].Select(x => x.ToString()).ToList() };
+        return new RowDto() { Row = GetFirstUpdatedLine(result) };
     }
 
     [Action("Create sheet", Description = "Create sheet")]
@@ -408,14 +408,20 @@ public class SpreadsheetActions(InvocationContext invocationContext, IFileManage
         var range = $"{sheetRequest.SheetName}!{updateRowRequest.CellAddress}:{Column}{endRow}";
         var valueRange = new ValueRange
         {
-            Values = new List<IList<object>> { updateRowRequest.Row.Select(x => (object)x).ToList() },
+            Values = new List<IList<object>> { updateRowRequest.Row.ReplaceEmptyCellPlaceholders().Select(x => (object)x).ToList() },
             MajorDimension = "COLUMNS"
         };
         var updateRequest = Client.Spreadsheets.Values.Update(valueRange, spreadsheetFileRequest.SpreadSheetId, range);
         updateRequest.ValueInputOption = UpdateRequest.ValueInputOptionEnum.USERENTERED;
         updateRequest.IncludeValuesInResponse = true;
         var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () => await updateRequest.ExecuteAsync());
-        return new ColumnDto() { Column = result.UpdatedData.Values[0].Select(x => x.ToString()).ToList() };
+        return new ColumnDto() { Column = GetFirstUpdatedLine(result) };
+    }
+
+    private static List<string> GetFirstUpdatedLine(UpdateValuesResponse response)
+    {
+        return response?.UpdatedData?.Values?.FirstOrDefault()?.Select(x => x?.ToString() ?? string.Empty).ToList()
+            ?? new List<string>();
     }
 
     [Action("Find sheet row", Description = "Providing a column address and a value, return row number where said value is located")]
